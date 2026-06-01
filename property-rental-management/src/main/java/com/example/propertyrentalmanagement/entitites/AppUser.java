@@ -4,6 +4,8 @@ import com.example.propertyrentalmanagement.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "app_user")
 @Getter
@@ -14,8 +16,8 @@ import lombok.*;
 public class AppUser {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String name;

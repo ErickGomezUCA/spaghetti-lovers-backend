@@ -4,6 +4,8 @@ import com.example.propertyrentalmanagement.enums.DocumentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "identity_document")
 @Getter
@@ -14,8 +16,8 @@ import lombok.*;
 public class IdentityDocument {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

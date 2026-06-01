@@ -5,6 +5,8 @@ import com.example.propertyrentalmanagement.enums.Urgency;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "maintenance")
 @Getter
@@ -15,8 +17,8 @@ import lombok.*;
 public class Maintenance {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
