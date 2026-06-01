@@ -2,4 +2,17 @@ spring:
   application:
     name: property-rental-management
 
+  datasource:
+    url: "jdbc:postgresql://localhost:5433/property_rental_db"
+    username: "${POSTGRES_USER}"
+    password: "${POSTGRES_PASSWORD}"
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8080
 

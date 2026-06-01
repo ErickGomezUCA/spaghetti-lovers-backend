@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: property_rental_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - property_rental_data:/var/lib/postgresql/data
+
+volumes:
+  property_rental_data:
