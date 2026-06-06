@@ -22,10 +22,12 @@ public class UserController {
     @PostMapping
     ResponseEntity<GenericResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse createdUser = appUserService.createUser(request);
+
         return GenericResponse.builder()
                 .message("User created successfully")
                 .data(createdUser)
-                .status(HttpStatus.CREATED) // TODO: Set URI
+                .resourceId(createdUser.id())
+                .status(HttpStatus.CREATED)
                 .build().buildResponse();
     }
 
@@ -62,4 +64,3 @@ public class UserController {
                 .build().buildResponse();
     }
 }
-
