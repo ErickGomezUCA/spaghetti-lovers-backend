@@ -29,25 +29,33 @@ public class PropertyServiceImpl implements PropertyService {
 
         Property property = Property.builder()
                 .landlord(landlord)
-                .title(propertyRequest.getTitle())
-                .description(propertyRequest.getDescription())
-                .address(propertyRequest.getAddress())
-                .city(propertyRequest.getCity())
-                .department(propertyRequest.getDepartment())
-                .country(propertyRequest.getCountry())
-                .basePricePerNight(propertyRequest.getBasePricePerNight())
-                .cleaningFee(propertyRequest.getCleaningFee())
-                .securityDepositAmount(propertyRequest.getSecurityDepositAmount())
-                .maxGuests(propertyRequest.getMaxGuests())
-                .bedrooms(propertyRequest.getBedrooms())
-                .bathrooms(propertyRequest.getBathrooms())
-                .areaSqm(propertyRequest.getAreaSqm())
-                .propertyType(propertyRequest.getPropertyType())
+                .title(propertyRequest.title())
+                .description(propertyRequest.description())
+                .address(propertyRequest.address())
+                .city(propertyRequest.city())
+                .department(propertyRequest.department())
+                .country(propertyRequest.country())
+                .basePricePerNight(propertyRequest.basePricePerNight())
+                .cleaningFee(propertyRequest.cleaningFee())
+                .securityDepositAmount(propertyRequest.securityDepositAmount())
+                .maxGuests(propertyRequest.maxGuests())
+                .bedrooms(propertyRequest.bedrooms())
+                .bathrooms(propertyRequest.bathrooms())
+                .areaSqm(propertyRequest.areaSqm())
+                .propertyType(propertyRequest.propertyType())
                 .propertyStatus(PropertyStatus.ACTIVE)
-                .rules(propertyRequest.getRules()).build();
+                .rules(propertyRequest.rules())
+                .createdAt(java.time.LocalDateTime.now())
+                .updatedAt(java.time.LocalDateTime.now())
+                .build();
 
         Property createdProperty = propertyRepository.save(property);
         return PropertyResponse.fromEntity(createdProperty);
+    }
+
+    @Override
+    public PropertyResponse attachPhotosToProperty(UUID propertyId, List<String> photoUrls) {
+        return null;
     }
 
     @Override

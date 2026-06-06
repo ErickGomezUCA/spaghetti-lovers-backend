@@ -9,9 +9,13 @@ import java.util.UUID;
 public interface PropertyService {
     PropertyResponse createProperty(CreatePropertyRequest propertyRequest, UUID landlordId);
 
+    PropertyResponse attachPhotosToProperty(UUID propertyId, List<String> photoUrls);
+
     PropertyResponse getPropertyById(UUID propertyId);
 
     List<PropertyResponse> getAllProperties();
 
     List<PropertyResponse> getPropertiesByLandlordId(UUID landlordId);
+
+
 }
