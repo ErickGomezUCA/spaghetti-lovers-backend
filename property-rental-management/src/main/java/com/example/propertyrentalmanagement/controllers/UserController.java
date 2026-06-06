@@ -1,6 +1,7 @@
 package com.example.propertyrentalmanagement.controllers;
 
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
+import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.services.AppUserService;
@@ -19,7 +20,8 @@ public class UserController {
 
     private final AppUserService appUserService;
 
-    @PostMapping
+    // TODO: Include token in response: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PostMapping("/register")
     ResponseEntity<GenericResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse createdUser = appUserService.createUser(request);
 
@@ -28,6 +30,17 @@ public class UserController {
                 .data(createdUser)
                 .resourceId(createdUser.id())
                 .status(HttpStatus.CREATED)
+                .build().buildResponse();
+    }
+
+    // TODO: Include token in response: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PostMapping("/login")
+    ResponseEntity<GenericResponse> login(@Valid @RequestBody LoginRequest request) {
+        UserResponse loggedUser = appUserService.login(request);
+        return GenericResponse.builder()
+                .message("Login successful")
+                .data(loggedUser)
+                .status(HttpStatus.OK)
                 .build().buildResponse();
     }
 

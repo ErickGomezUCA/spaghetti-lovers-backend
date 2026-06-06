@@ -1,9 +1,11 @@
 package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
+import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.exceptions.InvalidCredentials;
 import com.example.propertyrentalmanagement.exceptions.UserAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
@@ -41,6 +43,18 @@ public class AppUserServiceImpl implements AppUserService {
     }
 
     @Override
+    public UserResponse login(LoginRequest loginRequest) {
+        AppUser userFound = appUserRepository.findByEmail(loginRequest.email())
+                .orElseThrow(() -> new InvalidCredentials("Invalid email or password"));
+
+        if (!passwordEncoder.matches(loginRequest.password(), userFound.getPasswordHash())) {
+            throw new InvalidCredentials("Invalid email or password");
+        }
+
+        return UserResponse.fromEntity(userFound);
+    }
+
+    @Override
     public UserResponse getUserByEmail(String email) {
         AppUser userFound = appUserRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -64,4 +78,3 @@ public class AppUserServiceImpl implements AppUserService {
 
 
 }
-

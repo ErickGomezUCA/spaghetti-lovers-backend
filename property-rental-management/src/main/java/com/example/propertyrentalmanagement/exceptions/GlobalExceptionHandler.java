@@ -44,5 +44,14 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT).build().buildResponse();
     }
 
-
+    @ExceptionHandler(InvalidCredentials.class)
+    public ResponseEntity<GenericResponse> invalidCredentials(InvalidCredentials ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.UNAUTHORIZED).build().buildResponse();
+    }
 }
