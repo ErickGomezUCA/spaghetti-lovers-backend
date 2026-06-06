@@ -18,7 +18,6 @@ public class UserController {
     private final AppUserService appUserService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     ResponseEntity<GenericResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse createdUser = appUserService.createUser(request);
         return GenericResponse.builder()
@@ -28,8 +27,10 @@ public class UserController {
                 .build().buildResponse();
     }
 
+    // TODO: Get user by auth token (getMe)
+    
     @GetMapping
-    ResponseEntity<GenericResponse> getMe(@RequestParam(name = "email") String email) {
+    ResponseEntity<GenericResponse> getUserByEmail(@RequestParam(name = "email") String email) {
         UserResponse userFound = appUserService.getUserByEmail(email);
         return GenericResponse.builder()
                 .message("User found")
