@@ -21,10 +21,10 @@ public record CreatePropertyRequest(
         @NotBlank
         String city,
 
-        @NotNull
+        @NotBlank
         String department,
 
-        @NotNull
+        @NotBlank
         String country,
 
         @NotNull

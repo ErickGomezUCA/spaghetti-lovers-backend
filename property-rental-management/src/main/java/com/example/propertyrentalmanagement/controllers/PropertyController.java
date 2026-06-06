@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.controllers;
 
+import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
@@ -31,6 +32,21 @@ public class PropertyController {
                 .message("Property created successfully")
                 .data(createdProperty)
                 .resourceId(createdProperty.id())
+                .status(HttpStatus.CREATED)
+                .build().buildResponse();
+    }
+
+    @PostMapping("/attach-photos/{id}")
+    ResponseEntity<GenericResponse> attachPhotosToProperty(
+            @PathVariable UUID id,
+            @Valid @RequestBody AttachPhotoRequest attachPhotoRequest
+    ) {
+        PropertyResponse propertyResponse = propertyService.attachPhotosToProperty(id, attachPhotoRequest);
+
+        return GenericResponse.builder()
+                .message("Property photos created successfully")
+                .data(propertyResponse)
+                .resourceId(propertyResponse.id())
                 .status(HttpStatus.CREATED)
                 .build().buildResponse();
     }

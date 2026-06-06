@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.services;
 
+import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 
@@ -9,7 +10,7 @@ import java.util.UUID;
 public interface PropertyService {
     PropertyResponse createProperty(CreatePropertyRequest propertyRequest, UUID landlordId);
 
-    PropertyResponse attachPhotosToProperty(UUID propertyId, List<String> photoUrls);
+    PropertyResponse attachPhotosToProperty(UUID propertyId, AttachPhotoRequest photoUrls);
 
     PropertyResponse getPropertyById(UUID propertyId);
 

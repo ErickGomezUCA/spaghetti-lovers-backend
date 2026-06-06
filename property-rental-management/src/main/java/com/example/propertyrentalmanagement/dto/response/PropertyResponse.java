@@ -1,11 +1,13 @@
 package com.example.propertyrentalmanagement.dto.response;
 
 import com.example.propertyrentalmanagement.entitites.Property;
+import com.example.propertyrentalmanagement.entitites.PropertyPhoto;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record PropertyResponse(
@@ -27,6 +29,7 @@ public record PropertyResponse(
         PropertyType propertyType,
         PropertyStatus propertyStatus,
         String rules,
+        List<String> photoUrls,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -50,6 +53,7 @@ public record PropertyResponse(
                 property.getPropertyType(),
                 property.getPropertyStatus(),
                 property.getRules(),
+                property.getPhotoUrls() != null ? property.getPhotoUrls().stream().map(PropertyPhoto::getUrl).toList() : List.of(),
                 property.getCreatedAt(),
                 property.getUpdatedAt()
         );
