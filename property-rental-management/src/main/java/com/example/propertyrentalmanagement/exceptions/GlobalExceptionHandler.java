@@ -54,4 +54,15 @@ public class GlobalExceptionHandler {
                 .data(errorResponse)
                 .status(HttpStatus.UNAUTHORIZED).build().buildResponse();
     }
+
+    @ExceptionHandler(PropertyNotFound.class)
+    public ResponseEntity<GenericResponse> propertyNotFound(PropertyNotFound ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND).build().buildResponse();
+    }
 }
