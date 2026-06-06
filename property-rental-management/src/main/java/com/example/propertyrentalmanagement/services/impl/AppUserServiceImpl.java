@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class AppUserServiceImpl implements AppUserService {
@@ -44,5 +46,22 @@ public class AppUserServiceImpl implements AppUserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return UserResponse.fromEntity(userFound);
     }
+
+    @Override
+    public UserResponse getUserById(UUID userId) {
+        AppUser userFound = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return UserResponse.fromEntity(userFound);
+    }
+
+    // TODO: Pending to be implemented on: [SPL-22] Obtener Calificaciones de un Usuario
+    @Override
+    public UserResponse getUserRating(UUID userId) {
+        AppUser userFound = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return UserResponse.fromEntity(userFound);
+    }
+
+
 }
 
