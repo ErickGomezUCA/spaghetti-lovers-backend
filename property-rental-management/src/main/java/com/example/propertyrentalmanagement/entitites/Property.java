@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -72,6 +73,9 @@ public class Property {
 
     @Column(columnDefinition = "TEXT")
     private String rules;
+
+    @OneToMany(mappedBy = "property", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PropertyPhoto> photoUrls;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
