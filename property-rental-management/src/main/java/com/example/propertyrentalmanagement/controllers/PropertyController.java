@@ -97,4 +97,15 @@ public class PropertyController {
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
+
+    @DeleteMapping("/{id}")
+    ResponseEntity<GenericResponse> deleteProperty(
+            @PathVariable UUID id
+    ) {
+        propertyService.deleteProperty(id);
+        return GenericResponse.builder()
+                .message("Property deleted successfully")
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
 }

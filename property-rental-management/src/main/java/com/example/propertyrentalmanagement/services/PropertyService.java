@@ -20,4 +20,6 @@ public interface PropertyService {
     List<PropertyResponse> getPropertiesByLandlordId(UUID landlordId);
 
     PropertyResponse updateProperty(UUID landlordId, UUID propertyId, UpdatePropertyRequest propertyRequest);
+
+    void deleteProperty(UUID propertyId);
 }

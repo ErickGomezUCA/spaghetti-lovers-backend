@@ -132,6 +132,14 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyResponse.fromEntity(savedProperty);
     }
 
+    @Override
+    public void deleteProperty(UUID propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        propertyRepository.delete(property);
+    }
+
     //    Private methods
     private PropertyResponse attachPhotosToPropertyByList(UUID propertyId, List<String> photoUrls) {
         Property propertyFound = propertyRepository.findById(propertyId)
