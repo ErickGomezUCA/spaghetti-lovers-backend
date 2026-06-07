@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -74,6 +75,16 @@ public class AppUserController {
         UserResponse userFound = appUserService.getUserRating(userId);
         return GenericResponse.builder()
                 .message("User found")
+                .data(userFound)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+    @GetMapping("/me")
+    ResponseEntity<GenericResponse> getAuthenticatedUser(Authentication authentication) {
+        UserResponse userFound = appUserService.getUserByEmail(authentication.getName());
+
+        return GenericResponse.builder()
+                .message("Authenticated user found")
                 .data(userFound)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
