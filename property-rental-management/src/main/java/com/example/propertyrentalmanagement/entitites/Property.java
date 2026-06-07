@@ -75,7 +75,7 @@ public class Property {
     private String rules;
 
     @OneToMany(mappedBy = "property", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PropertyPhoto> photoUrls;
+    private List<PropertyPhoto> photos;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
