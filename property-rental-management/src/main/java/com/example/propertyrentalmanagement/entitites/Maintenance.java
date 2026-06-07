@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.enums.Urgency;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -48,4 +49,7 @@ public class Maintenance {
     @Enumerated(EnumType.STRING)
     @Column(name = "maintenance_status", nullable = false)
     private MaintenanceStatus maintenanceStatus;
+
+    @OneToMany(mappedBy = "maintenance", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MaintenancePhoto> photos;
 }

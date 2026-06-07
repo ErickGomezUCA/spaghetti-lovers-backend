@@ -21,7 +21,7 @@ public class MaintenancePhoto {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maintenance_request_id", nullable = false)
-    private Maintenance maintenanceRequest;
+    private Maintenance maintenance;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "photo_type", nullable = false)
