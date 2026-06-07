@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
+import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.enums.UserRole;
@@ -9,6 +10,7 @@ import com.example.propertyrentalmanagement.exceptions.InvalidCredentials;
 import com.example.propertyrentalmanagement.exceptions.UserAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.security.JwtService;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,14 +24,16 @@ public class AppUserServiceImpl implements AppUserService {
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
-    public UserResponse createUser(CreateUserRequest userRequest) {
+    public AuthResponse createUser(CreateUserRequest userRequest) {
         if (appUserRepository.findByEmail(userRequest.email()).isPresent()) {
             throw new UserAlreadyExistsException("Email is already in use");
         }
 
         UserRole role = userRequest.role() == null ? UserRole.TENANT : userRequest.role();
+
         AppUser user = AppUser.builder()
                 .name(userRequest.name())
                 .email(userRequest.email())
@@ -39,11 +43,16 @@ public class AppUserServiceImpl implements AppUserService {
                 .build();
 
         AppUser createdUser = appUserRepository.save(user);
-        return UserResponse.fromEntity(createdUser);
+        String token = jwtService.generateToken(createdUser);
+
+        return AuthResponse.builder()
+                .token(token)
+                .user(UserResponse.fromEntity(createdUser))
+                .build();
     }
 
     @Override
-    public UserResponse login(LoginRequest loginRequest) {
+    public AuthResponse login(LoginRequest loginRequest) {
         AppUser userFound = appUserRepository.findByEmail(loginRequest.email())
                 .orElseThrow(() -> new InvalidCredentials("Invalid email or password"));
 
@@ -51,7 +60,12 @@ public class AppUserServiceImpl implements AppUserService {
             throw new InvalidCredentials("Invalid email or password");
         }
 
-        return UserResponse.fromEntity(userFound);
+        String token = jwtService.generateToken(userFound);
+
+        return AuthResponse.builder()
+                .token(token)
+                .user(UserResponse.fromEntity(userFound))
+                .build();
     }
 
     @Override
