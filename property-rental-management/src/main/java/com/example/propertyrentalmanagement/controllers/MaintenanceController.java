@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.controllers;
 
 import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
+import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
@@ -61,6 +62,17 @@ public class MaintenanceController {
         MaintenanceResponse confirmedMaintenance = maintenanceService.confirmMaintenance(landlordId, id, confirmMaintenanceRequest);
         return GenericResponse.builder()
                 .message("Maintenance confirmed")
+                .data(confirmedMaintenance)
+                .status(HttpStatus.CREATED)
+                .resourceId(confirmedMaintenance.id())
+                .build().buildResponse();
+    }
+
+    @PatchMapping("/{id}/resolve")
+    ResponseEntity<GenericResponse> resolveMaintenance(@RequestParam(name = "landlordId") UUID landlordId, @PathVariable UUID id, @Valid @RequestBody ResolveMaintenanceRequest resolveMaintenanceRequest) {
+        MaintenanceResponse confirmedMaintenance = maintenanceService.resolveMaintenance(landlordId, id, resolveMaintenanceRequest);
+        return GenericResponse.builder()
+                .message("Maintenance resolved")
                 .data(confirmedMaintenance)
                 .status(HttpStatus.OK)
                 .build().buildResponse();

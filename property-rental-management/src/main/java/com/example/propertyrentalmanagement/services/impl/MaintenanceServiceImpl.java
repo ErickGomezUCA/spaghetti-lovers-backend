@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
+import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Maintenance;
@@ -115,7 +116,34 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public MaintenanceResponse resolveMaintenance(UUID maintenanceId) {
-        return null;
+    public MaintenanceResponse resolveMaintenance(UUID landlordId, UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest) {
+        Maintenance maintenanceFound = maintenanceRepository.findById(maintenanceId)
+                .orElseThrow(() -> new MaintenanceNotFoundException("Maintenance not found"));
+
+        Property property = propertyRepository.findById(maintenanceFound.getProperty().getId())
+                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        // TODO: Check ownership
+
+        if (resolveMaintenanceRequest.photoUrls() != null && !resolveMaintenanceRequest.photoUrls().isEmpty()) {
+            List<MaintenancePhoto> photos = resolveMaintenanceRequest.photoUrls().stream()
+                    .filter(Objects::nonNull)
+                    .map(url -> MaintenancePhoto.builder()
+                            .maintenance(maintenanceFound)
+                            .url(url)
+                            .photoType(MaintenancePhotoType.RESPONSE)
+                            .build())
+                    .toList();
+
+            if (!photos.isEmpty()) {
+                maintenancePhotoRepository.saveAll(photos);
+            }
+        }
+
+        maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVED);
+        maintenanceFound.setResolutionNotes(resolveMaintenanceRequest.resolutionNotes());
+        Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
+
+        return MaintenanceResponse.fromEntity(updatedMaintenance);
     }
 }

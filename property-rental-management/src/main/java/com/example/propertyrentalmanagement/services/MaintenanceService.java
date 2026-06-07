@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services;
 
 import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
+import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 
 import java.util.List;
@@ -16,5 +17,5 @@ public interface MaintenanceService {
 
     MaintenanceResponse confirmMaintenance(UUID landlordId, UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest);
 
-    MaintenanceResponse resolveMaintenance(UUID maintenanceId);
+    MaintenanceResponse resolveMaintenance(UUID landlordId, UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest);
 }
