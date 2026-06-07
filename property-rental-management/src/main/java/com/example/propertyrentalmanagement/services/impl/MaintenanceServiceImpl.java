@@ -8,7 +8,9 @@ import com.example.propertyrentalmanagement.entitites.MaintenancePhoto;
 import com.example.propertyrentalmanagement.entitites.Property;
 import com.example.propertyrentalmanagement.enums.MaintenancePhotoType;
 import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
+import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
+import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
@@ -42,6 +44,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         Property propertyFound = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+//        TODO: Check if user is current tenant of the reservation, on task: [SPL-18] Reservas con fechas fijas (check-in/out)
+
+        if (reportedUserFound.getRole() == UserRole.LANDLORD && propertyFound.getLandlord().getId() != reportedId) {
+            throw new NotResourceOwnerException("User is not the landlord of this property");
+        }
 
         Maintenance maintenance = Maintenance.builder()
                 .property(propertyFound)

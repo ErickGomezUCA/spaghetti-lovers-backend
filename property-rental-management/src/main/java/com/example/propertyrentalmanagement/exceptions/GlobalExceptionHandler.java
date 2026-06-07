@@ -77,5 +77,14 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND).build().buildResponse();
     }
 
-
+    @ExceptionHandler(NotResourceOwnerException.class)
+    public ResponseEntity<GenericResponse> notResourceOwnerException(NotResourceOwnerException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.FORBIDDEN).build().buildResponse();
+    }
 }
