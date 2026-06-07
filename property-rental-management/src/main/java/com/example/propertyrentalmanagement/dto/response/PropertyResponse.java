@@ -53,7 +53,7 @@ public record PropertyResponse(
                 property.getPropertyType(),
                 property.getPropertyStatus(),
                 property.getRules(),
-                property.getPhotoUrls() != null ? property.getPhotoUrls().stream().map(PropertyPhoto::getUrl).toList() : List.of(),
+                property.getPhotos() != null ? property.getPhotos().stream().map(PropertyPhoto::getUrl).toList() : List.of(),
                 property.getCreatedAt(),
                 property.getUpdatedAt()
         );

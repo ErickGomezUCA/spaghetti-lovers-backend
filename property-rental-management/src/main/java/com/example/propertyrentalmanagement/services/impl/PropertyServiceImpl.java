@@ -122,7 +122,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .propertyType(propertyRequest.propertyType() != null ? propertyRequest.propertyType() : property.getPropertyType())
                 .propertyStatus(propertyRequest.propertyStatus() != null ? propertyRequest.propertyStatus() : property.getPropertyStatus())
                 .rules(propertyRequest.rules() != null ? propertyRequest.rules() : property.getRules())
-                .photoUrls(property.getPhotoUrls())
+                .photos(property.getPhotos())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(LocalDateTime.now())
                 .build();
