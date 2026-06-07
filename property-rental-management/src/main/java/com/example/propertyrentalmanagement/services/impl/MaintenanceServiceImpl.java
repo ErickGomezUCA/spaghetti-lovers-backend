@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.services.impl;
 
+import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
@@ -78,6 +79,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             }
         }
 
+        // TODO: Insert notification to landlord, on task: [SPL-18] Reservas con fechas fijas (check-in/out)
+
         return MaintenanceResponse.fromEntity(createdMaintenance);
     }
 
@@ -95,8 +98,20 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public MaintenanceResponse confirmMaintenance(UUID maintenanceId) {
-        return null;
+    public MaintenanceResponse confirmMaintenance(UUID landlordId, UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest) {
+        Maintenance maintenanceFound = maintenanceRepository.findById(maintenanceId)
+                .orElseThrow(() -> new MaintenanceNotFoundException("Maintenance not found"));
+
+        Property property = propertyRepository.findById(maintenanceFound.getProperty().getId())
+                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        // TODO: Check ownership
+
+        maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVING);
+        Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
+
+        // TODO: Block maintenance into availability calendar, on task: [SPL-17] Calendario de disponibilidad sincronizado
+        return MaintenanceResponse.fromEntity(updatedMaintenance);
     }
 
     @Override

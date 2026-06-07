@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.services;
 
+import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 
@@ -13,7 +14,7 @@ public interface MaintenanceService {
 
     List<MaintenanceResponse> getAllMaintenances();
 
-    MaintenanceResponse confirmMaintenance(UUID maintenanceId);
+    MaintenanceResponse confirmMaintenance(UUID landlordId, UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest);
 
     MaintenanceResponse resolveMaintenance(UUID maintenanceId);
 }
