@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.controllers;
 
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
+import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.services.PropertyService;
@@ -77,6 +78,22 @@ public class PropertyController {
         return GenericResponse.builder()
                 .message("Properties found")
                 .data(properties)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    // TODO: Get landlordId from auth token instead of path param, on task: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PutMapping("/{id}")
+    ResponseEntity<GenericResponse> updateProperty(
+            @PathVariable UUID id,
+            @RequestParam(name = "landlordId") UUID landlordId,
+            @Valid @RequestBody UpdatePropertyRequest propertyRequest
+    ) {
+        PropertyResponse updatedProperty = propertyService.updateProperty(landlordId, id, propertyRequest);
+
+        return GenericResponse.builder()
+                .message("Property updated successfully")
+                .data(updatedProperty)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
