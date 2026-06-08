@@ -98,4 +98,31 @@ public class GlobalExceptionHandler {
                 .data(errorResponse)
                 .status(HttpStatus.NOT_FOUND).build().buildResponse();
     }
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<GenericResponse> reservationNotFoundException(ReservationNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
+
+    @ExceptionHandler(AccessCodeNotFoundException.class)
+    public ResponseEntity<GenericResponse> accessCodeNotFoundException(AccessCodeNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
 }
