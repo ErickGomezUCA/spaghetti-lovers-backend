@@ -87,4 +87,15 @@ public class GlobalExceptionHandler {
                 .data(errorResponse)
                 .status(HttpStatus.FORBIDDEN).build().buildResponse();
     }
+
+    @ExceptionHandler(MaintenanceScheduleNotFoundException.class)
+    public ResponseEntity<GenericResponse> maintenanceScheduleNotFoundException(MaintenanceScheduleNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND).build().buildResponse();
+    }
 }
