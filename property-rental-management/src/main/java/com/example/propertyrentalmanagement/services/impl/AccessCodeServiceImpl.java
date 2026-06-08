@@ -6,6 +6,9 @@ import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Reservation;
 import com.example.propertyrentalmanagement.enums.CodeType;
 import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.exceptions.AccessCodeNotFoundException;
+import com.example.propertyrentalmanagement.exceptions.ForbiddenActionException;
+import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AccessCodeRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
@@ -53,7 +56,7 @@ public class AccessCodeServiceImpl implements AccessCodeService {
     @Override
     public AccessCodeResponse getActiveAccessCodeByReservationId(UUID reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new UserNotFoundException("Reservation not found"));
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
 
         AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
@@ -61,7 +64,7 @@ public class AccessCodeServiceImpl implements AccessCodeService {
 
         AccessCode accessCode = accessCodeRepository
                 .findByReservationAndIsActiveTrueAndCodeType(reservation, CodeType.ACCESS_CODE)
-                .orElseThrow(() -> new UserNotFoundException("Active access code not found"));
+                .orElseThrow(() -> new AccessCodeNotFoundException("Active access code not found"));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -87,7 +90,7 @@ public class AccessCodeServiceImpl implements AccessCodeService {
         boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
 
         if (!isTenantOwner && !isPropertyLandlord && !isAdmin) {
-            throw new SecurityException("You are not allowed to access this reservation code");
+            throw new ForbiddenActionException("You are not allowed to access this reservation code");
         }
     }
 
