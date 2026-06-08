@@ -7,9 +7,8 @@ import com.example.propertyrentalmanagement.entitites.Reservation;
 import com.example.propertyrentalmanagement.enums.CodeType;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.AccessCodeNotFoundException;
-import com.example.propertyrentalmanagement.exceptions.ForbiddenActionException;
+import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
-import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AccessCodeRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
@@ -90,7 +89,7 @@ public class AccessCodeServiceImpl implements AccessCodeService {
         boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
 
         if (!isTenantOwner && !isPropertyLandlord && !isAdmin) {
-            throw new ForbiddenActionException("You are not allowed to access this reservation code");
+            throw new NotResourceOwnerException("You are not allowed to access this reservation code");
         }
     }
 
