@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.services;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
+import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 
 import java.util.UUID;
@@ -17,5 +18,5 @@ public interface AppUserService {
     UserResponse getUserById(UUID userId);
 
     // TODO: If necessary, return value can be changed depending on rating response values
-    UserResponse getUserRating(UUID userId);
+    UserRatingsResponse getUserRating(UUID userId);
 }
