@@ -125,4 +125,17 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+
+    @ExceptionHandler(RatingNotFoundException.class)
+    public ResponseEntity<GenericResponse> ratingNotFoundException(RatingNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
 }
