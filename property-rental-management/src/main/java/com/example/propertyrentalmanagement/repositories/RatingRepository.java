@@ -16,6 +16,6 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
 
     boolean existsByReservationIdAndReviewerId(UUID reservation, UUID reviewerId);
 
-    /*@Query("SELECT AVG(r.score) FROM Rating r WHERE r.reviewed.id = :reviewedId")
-    Optional<Double> findAverageScoreByReviewedId(@Param("reviewedId") UUID reviewedId);*/
+    @Query("SELECT AVG(r.score) FROM Rating r WHERE r.reviewed.id = :reviewedId")
+    Optional<Double> findAverageScoreByReviewedId(@Param("reviewedId") UUID reviewedId);
 }
