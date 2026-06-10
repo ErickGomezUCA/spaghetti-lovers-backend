@@ -8,10 +8,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/contracts")
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ContractController {
     private final ContractService contractService;
 
+    //    TODO: Protect routes by role
     @PostMapping
     ResponseEntity<GenericResponse> createContract(@Valid @RequestBody CreateContractRequest createContractRequest) {
         ContractResponse createdContract = contractService.createContract(createContractRequest);
@@ -28,6 +28,18 @@ public class ContractController {
                 .data(createdContract)
                 .resourceId(createdContract.id())
                 .status(HttpStatus.CREATED)
+                .build().buildResponse();
+    }
+
+    @PostMapping("/{id}/sign")
+    ResponseEntity<GenericResponse> signContract(@RequestParam(name = "userId") UUID userId, @PathVariable UUID id) {
+        ContractResponse signedContract = contractService.signContract(id, userId);
+
+        return GenericResponse.builder()
+                .message("Contract signed successfully")
+                .data(signedContract)
+                .resourceId(signedContract.id())
+                .status(HttpStatus.OK)
                 .build().buildResponse();
     }
 }

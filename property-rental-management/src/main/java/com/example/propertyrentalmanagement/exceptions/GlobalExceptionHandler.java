@@ -98,6 +98,7 @@ public class GlobalExceptionHandler {
                 .data(errorResponse)
                 .status(HttpStatus.NOT_FOUND).build().buildResponse();
     }
+
     @ExceptionHandler(ReservationNotFoundException.class)
     public ResponseEntity<GenericResponse> reservationNotFoundException(ReservationNotFoundException ex) {
         CustomErrorResponse errorResponse = new CustomErrorResponse(
@@ -136,6 +137,34 @@ public class GlobalExceptionHandler {
         return GenericResponse.builder()
                 .data(errorResponse)
                 .status(HttpStatus.CONFLICT)
+                .build()
+                .buildResponse();
+    }
+
+    @ExceptionHandler(ContractNotFoundException.class)
+    public ResponseEntity<GenericResponse> contractNotFoundException(ContractNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
+
+    @ExceptionHandler(InvalidContractException.class)
+    public ResponseEntity<GenericResponse> invalidContractException(InvalidContractException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.UNPROCESSABLE_CONTENT)
                 .build()
                 .buildResponse();
     }
