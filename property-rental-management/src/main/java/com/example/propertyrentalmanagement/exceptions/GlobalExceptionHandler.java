@@ -125,4 +125,18 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+
+    @ExceptionHandler(InvalidReservationCancellationException.class)
+    public ResponseEntity<GenericResponse> invalidReservationCancellationException(InvalidReservationCancellationException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.CONFLICT)
+                .build()
+                .buildResponse();
+    }
 }

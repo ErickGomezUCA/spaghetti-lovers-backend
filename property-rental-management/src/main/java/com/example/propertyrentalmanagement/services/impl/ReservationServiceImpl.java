@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Notification;
 import com.example.propertyrentalmanagement.entitites.Reservation;
 import com.example.propertyrentalmanagement.enums.*;
+import com.example.propertyrentalmanagement.exceptions.InvalidReservationCancellationException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
@@ -106,11 +107,15 @@ public class ReservationServiceImpl implements ReservationService {
                 || reservation.getReservationStatus() == ReservationStatus.ACTIVE;
 
         if (!isReservedOrActive) {
-            throw new IllegalStateException("Only reserved or active reservations can be cancelled");
+            throw new InvalidReservationCancellationException(
+                    "Only reserved or active reservations can be cancelled"
+            );
         }
 
         if (!reservation.getCheckInDate().isAfter(LocalDate.now())) {
-            throw new IllegalStateException("Cannot cancel a reservation whose check-in date has already passed");
+            throw new InvalidReservationCancellationException(
+                    "Cannot cancel a reservation whose check-in date has already passed"
+            );
         }
     }
 
