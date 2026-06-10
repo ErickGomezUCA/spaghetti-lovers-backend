@@ -39,7 +39,11 @@ public class SecurityConfig {
                                 "/api/users/login"
                         ).permitAll()
 
-                        .requestMatchers("/api/users/*/rating").permitAll()
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/users/*/rating",
+                                "/api/properties/*/availability"
+                        ).permitAll()
 
                         .anyRequest().authenticated()
                 )
