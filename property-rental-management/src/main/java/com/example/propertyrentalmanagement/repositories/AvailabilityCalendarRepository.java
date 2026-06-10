@@ -1,6 +1,7 @@
 package com.example.propertyrentalmanagement.repositories;
 
 import com.example.propertyrentalmanagement.entitites.AvailabilityCalendar;
+import com.example.propertyrentalmanagement.entitites.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,6 @@ public interface AvailabilityCalendarRepository extends JpaRepository<Availabili
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+  
+    List<AvailabilityCalendar> findByReservation(Reservation reservation);
 }

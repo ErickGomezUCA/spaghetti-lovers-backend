@@ -128,14 +128,29 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<GenericResponse> illegalArgumentException(IllegalArgumentException ex) {
-        CustomErrorResponse errorResponse = new CustomErrorResponse(
-                java.time.LocalDateTime.now(),
-                ex.getMessage()
-        );
-        return GenericResponse.builder()
-                .data(errorResponse)
-                .status(HttpStatus.BAD_REQUEST)
-                .build()
-                .buildResponse();
+         CustomErrorResponse errorResponse = new CustomErrorResponse(
+                 java.time.LocalDateTime.now(),
+                 ex.getMessage()
+         );
+      
+          return GenericResponse.builder()
+                  .data(errorResponse)
+                  .status(HttpStatus.BAD_REQUEST)
+                  .build()
+                  .buildResponse();
+    }
+  
+    @ExceptionHandler(InvalidReservationCancellationException.class)
+    public ResponseEntity<GenericResponse> invalidReservationCancellationException(InvalidReservationCancellationException ex) {
+          CustomErrorResponse errorResponse = new CustomErrorResponse(
+                  java.time.LocalDateTime.now(),
+                  ex.getMessage() 
+          );
+      
+      return GenericResponse.builder()
+              .data(errorResponse)
+              .status(HttpStatus.CONFLICT)
+              .build()
+              .buildResponse();
     }
 }
