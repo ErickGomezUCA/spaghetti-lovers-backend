@@ -125,4 +125,17 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<GenericResponse> illegalArgumentException(IllegalArgumentException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.BAD_REQUEST)
+                .build()
+                .buildResponse();
+    }
 }
