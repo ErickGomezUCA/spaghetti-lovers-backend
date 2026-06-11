@@ -40,7 +40,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/users/*/rating").permitAll()
 
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
