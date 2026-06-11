@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.dto.response.ContractResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.ContractStatus;
 import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.exceptions.ContractAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.ContractNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.InvalidContractException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
@@ -39,6 +40,10 @@ public class ContractServiceImpl implements ContractService {
     @Override
     public ContractResponse createContract(CreateContractRequest contractRequest) {
         UUID reservationId = contractRequest.reservationId();
+        Contract conflictingContract = contractRepository.findContractByReservationId(reservationId);
+        if (conflictingContract != null) {
+            throw new ContractAlreadyExistsException("Contract already exists for this reservation");
+        }
 
 //        TODO: Get real reservation here, on task: [SPL-18] Reservas con fechas fijas (check-in/out)
         Reservation reservationFound = reservationRepository.findById(reservationId)
