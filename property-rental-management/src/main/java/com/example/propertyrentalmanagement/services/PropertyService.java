@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PropertyService {
-    PropertyResponse createProperty(CreatePropertyRequest propertyRequest, UUID landlordId);
+    PropertyResponse createProperty(CreatePropertyRequest propertyRequest);
 
     PropertyResponse attachPhotosToProperty(UUID propertyId, AttachPhotoRequest photoUrls);
 

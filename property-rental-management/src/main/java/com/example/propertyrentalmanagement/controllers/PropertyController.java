@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,13 +22,12 @@ import java.util.UUID;
 public class PropertyController {
     private final PropertyService propertyService;
 
-    // TODO: Get landlordId from auth token instead of path param, on task: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PostMapping
     ResponseEntity<GenericResponse> createProperty(
-            @RequestParam(name = "landlordId") UUID landlordId,
             @Valid @RequestBody CreatePropertyRequest propertyRequest
     ) {
-        PropertyResponse createdProperty = propertyService.createProperty(propertyRequest, landlordId);
+        PropertyResponse createdProperty = propertyService.createProperty(propertyRequest);
 
         return GenericResponse.builder()
                 .message("Property created successfully")

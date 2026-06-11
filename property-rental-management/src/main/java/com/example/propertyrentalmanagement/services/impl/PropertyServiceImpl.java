@@ -13,6 +13,7 @@ import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.PropertyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,14 +29,14 @@ public class PropertyServiceImpl implements PropertyService {
     private final PropertyRepository propertyRepository;
     private final AppUserRepository appUserRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
+    private final AuthenticatedUserProvider authProvider;
 
     @Override
-    public PropertyResponse createProperty(CreatePropertyRequest propertyRequest, UUID landlordId) {
-        AppUser landlord = appUserRepository.findById(landlordId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    public PropertyResponse createProperty(CreatePropertyRequest propertyRequest) {
+        AppUser authUser = authProvider.getCurrentUser();
 
         Property property = Property.builder()
-                .landlord(landlord)
+                .landlord(authUser)
                 .title(propertyRequest.title())
                 .description(propertyRequest.description())
                 .address(propertyRequest.address())
