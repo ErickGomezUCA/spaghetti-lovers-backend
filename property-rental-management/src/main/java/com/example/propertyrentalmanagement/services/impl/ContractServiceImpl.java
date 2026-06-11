@@ -14,20 +14,27 @@ import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.SignatureService;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ContractServiceImpl implements ContractService {
     private final ContractRepository contractRepository;
+    private final FileStorageService fileStorageService;
     private final ReservationRepository reservationRepository; // TODO: See later if it's necessary to call services instead of repos
     private final PropertyRepository propertyRepository;
     private final AppUserRepository appUserRepository;
     private final SignatureService signatureService;
+    private final TemplateEngine templateEngine;
 
     @Override
     public ContractResponse createContract(CreateContractRequest contractRequest) {
@@ -37,10 +44,9 @@ public class ContractServiceImpl implements ContractService {
         Reservation reservationFound = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        // TODO: Include service to create PDF with reservation and property details here
-        // TODO: Get URL from generated PDF
-
-        String createdPdfURL = "http://localhost:8080/media/contract-file.pdf";
+        // TODO: Replace local storage service into cloud service, on task: [SPL-32] Almacenamiento en nube para archivos multimedia
+        byte[] pdfBytes = generateContractPdf(reservationFound);
+        String createdPdfURL = fileStorageService.storePdf(pdfBytes, reservationId);
 
         Contract contract = Contract.builder()
                 .reservation(reservationFound)
@@ -116,5 +122,43 @@ public class ContractServiceImpl implements ContractService {
 
         Contract signedContract = contractRepository.save(contractToSign);
         return ContractResponse.fromEntity(signedContract);
+    }
+
+    private byte[] generateContractPdf(Reservation reservation) {
+        Property property = reservation.getProperty();
+
+        Context context = new Context();
+        context.setVariable("propertyTitle", property.getTitle());
+        context.setVariable("propertyAddress", property.getAddress());
+        context.setVariable("landlordName", property.getLandlord().getName());
+        context.setVariable("tenantName", reservation.getTenant().getName());
+        context.setVariable("checkInDate", reservation.getCheckInDate());
+        context.setVariable("checkOutDate", reservation.getCheckOutDate());
+        context.setVariable("totalNights", reservation.getTotalNights());
+        context.setVariable("baseTotal", reservation.getBaseTotal());
+        context.setVariable("cleaningFee", reservation.getCleaningFee());
+        context.setVariable("securityDeposit", property.getSecurityDepositAmount());
+        context.setVariable("cancellationPenalty", reservation.getCancellationPenalty());
+        context.setVariable("totalPrice", reservation.getTotalPrice());
+        context.setVariable("rules", property.getRules());
+        context.setVariable("generatedAt",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+
+        String htmlContent = templateEngine.process("contract", context);
+
+        return renderPdf(htmlContent);
+    }
+
+    private byte[] renderPdf(String html) {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(html, null);
+            builder.toStream(os);
+            builder.run();
+            return os.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating contract PDF", e);
+        }
     }
 }

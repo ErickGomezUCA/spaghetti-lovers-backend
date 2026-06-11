@@ -38,7 +38,6 @@ public class ContractController {
         return GenericResponse.builder()
                 .message("Contract signed successfully")
                 .data(signedContract)
-                .resourceId(signedContract.id())
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
