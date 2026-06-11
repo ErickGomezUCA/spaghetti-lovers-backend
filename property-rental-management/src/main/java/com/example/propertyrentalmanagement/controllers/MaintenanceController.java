@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,13 +22,12 @@ import java.util.UUID;
 public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
-    // TODO: Get reportedId from auth token instead of path param, on task: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PreAuthorize("@authorizationService.isTenant()")
     @PostMapping
     ResponseEntity<GenericResponse> createMaintenance(
-            @RequestParam(name = "reportedId") UUID reportedId,
             @Valid @RequestBody CreateMaintenanceRequest maintenanceRequest
     ) {
-        MaintenanceResponse createdMaintenance = maintenanceService.createMaintenance(reportedId, maintenanceRequest);
+        MaintenanceResponse createdMaintenance = maintenanceService.createMaintenance(maintenanceRequest);
 
         return GenericResponse.builder()
                 .message("Maintenance created successfully")
@@ -57,9 +57,12 @@ public class MaintenanceController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PatchMapping("/{id}/confirm")
-    ResponseEntity<GenericResponse> confirmMaintenance(@RequestParam(name = "landlordId") UUID landlordId, @PathVariable UUID id, @Valid @RequestBody ConfirmMaintenanceRequest confirmMaintenanceRequest) {
-        MaintenanceResponse confirmedMaintenance = maintenanceService.confirmMaintenance(landlordId, id, confirmMaintenanceRequest);
+    ResponseEntity<GenericResponse> confirmMaintenance(
+            @PathVariable UUID id,
+            @Valid @RequestBody ConfirmMaintenanceRequest confirmMaintenanceRequest) {
+        MaintenanceResponse confirmedMaintenance = maintenanceService.confirmMaintenance(id, confirmMaintenanceRequest);
         return GenericResponse.builder()
                 .message("Maintenance confirmed")
                 .data(confirmedMaintenance)
@@ -69,8 +72,10 @@ public class MaintenanceController {
     }
 
     @PatchMapping("/{id}/resolve")
-    ResponseEntity<GenericResponse> resolveMaintenance(@RequestParam(name = "landlordId") UUID landlordId, @PathVariable UUID id, @Valid @RequestBody ResolveMaintenanceRequest resolveMaintenanceRequest) {
-        MaintenanceResponse confirmedMaintenance = maintenanceService.resolveMaintenance(landlordId, id, resolveMaintenanceRequest);
+    ResponseEntity<GenericResponse> resolveMaintenance(
+            @PathVariable UUID id,
+            @Valid @RequestBody ResolveMaintenanceRequest resolveMaintenanceRequest) {
+        MaintenanceResponse confirmedMaintenance = maintenanceService.resolveMaintenance(id, resolveMaintenanceRequest);
         return GenericResponse.builder()
                 .message("Maintenance resolved")
                 .data(confirmedMaintenance)
