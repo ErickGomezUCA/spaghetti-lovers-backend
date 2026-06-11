@@ -37,6 +37,7 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PostMapping("/attach-photos/{id}")
     ResponseEntity<GenericResponse> attachPhotosToProperty(
             @PathVariable UUID id,
@@ -52,6 +53,8 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
+    // TODO: Search properties
+    // TODO: Add pagination
     @GetMapping
     ResponseEntity<GenericResponse> getAllProperties() {
         List<PropertyResponse> properties = propertyService.getAllProperties();
@@ -82,14 +85,13 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
-    // TODO: Get landlordId from auth token instead of path param, on task: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PutMapping("/{id}")
     ResponseEntity<GenericResponse> updateProperty(
             @PathVariable UUID id,
-            @RequestParam(name = "landlordId") UUID landlordId,
             @Valid @RequestBody UpdatePropertyRequest propertyRequest
     ) {
-        PropertyResponse updatedProperty = propertyService.updateProperty(landlordId, id, propertyRequest);
+        PropertyResponse updatedProperty = propertyService.updateProperty(id, propertyRequest);
 
         return GenericResponse.builder()
                 .message("Property updated successfully")
@@ -98,6 +100,7 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @DeleteMapping("/{id}")
     ResponseEntity<GenericResponse> deleteProperty(
             @PathVariable UUID id

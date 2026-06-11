@@ -8,6 +8,7 @@ import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Property;
 import com.example.propertyrentalmanagement.entitites.PropertyPhoto;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
+import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
@@ -61,7 +62,7 @@ public class PropertyServiceImpl implements PropertyService {
 
         // Attach photos if provided
         if (propertyRequest.photoUrls() != null && !propertyRequest.photoUrls().isEmpty()) {
-            return attachPhotosToPropertyByList(createdProperty.getId(), propertyRequest.photoUrls());
+            return attachPhotosToPropertyByList(createdProperty, propertyRequest.photoUrls());
         }
 
         return PropertyResponse.fromEntity(createdProperty);
@@ -69,7 +70,12 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     public PropertyResponse attachPhotosToProperty(UUID propertyId, AttachPhotoRequest photoUrlsRequest) {
-        return attachPhotosToPropertyByList(propertyId, photoUrlsRequest.photoUrls());
+        AppUser authUser = authProvider.getCurrentUser();
+        Property propertyFound = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+        checkPropertyOwnership(propertyFound, authUser);
+
+        return attachPhotosToPropertyByList(propertyFound, photoUrlsRequest.photoUrls());
     }
 
     @Override
@@ -95,18 +101,19 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
-    public PropertyResponse updateProperty(UUID landlordId, UUID propertyId, UpdatePropertyRequest propertyRequest) {
-        AppUser landlord = appUserRepository.findById(landlordId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    public PropertyResponse updateProperty(UUID propertyId, UpdatePropertyRequest propertyRequest) {
+        AppUser authUser = authProvider.getCurrentUser();
 
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        checkPropertyOwnership(property, authUser);
 
         // TODO: Include list of photos here?
 
         Property valuesToUpdate = Property.builder()
                 .id(propertyId)
-                .landlord(landlord)
+                .landlord(authUser)
                 .title(propertyRequest.title() != null ? propertyRequest.title() : property.getTitle())
                 .description(propertyRequest.description() != null ? propertyRequest.description() : property.getDescription())
                 .address(propertyRequest.address() != null ? propertyRequest.address() : property.getAddress())
@@ -135,31 +142,38 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     public void deleteProperty(UUID propertyId) {
+        AppUser authUser = authProvider.getCurrentUser();
+
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        checkPropertyOwnership(property, authUser);
 
         propertyRepository.delete(property);
     }
 
     //    Private methods
-    private PropertyResponse attachPhotosToPropertyByList(UUID propertyId, List<String> photoUrls) {
-        Property propertyFound = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+    private void checkPropertyOwnership(Property property, AppUser user) {
+        if (!property.getLandlord().getId().equals(user.getId())) {
+            throw new NotResourceOwnerException("User is not the owner of the property");
+        }
+    }
 
+    private PropertyResponse attachPhotosToPropertyByList(Property property, List<String> photoUrls) {
         List<PropertyPhoto> photos = photoUrls.stream()
                 .filter(Objects::nonNull)
                 .map(url -> PropertyPhoto.builder()
-                        .property(propertyFound)
+                        .property(property)
                         .url(url)
                         .build())
                 .toList();
 
         if (!photos.isEmpty()) {
             propertyPhotoRepository.saveAll(photos);
-            propertyFound.setUpdatedAt(LocalDateTime.now());
-            propertyRepository.save(propertyFound);
+            property.setUpdatedAt(LocalDateTime.now());
+            propertyRepository.save(property);
         }
 
-        return PropertyResponse.fromEntity(propertyFound);
+        return PropertyResponse.fromEntity(property);
     }
 }
