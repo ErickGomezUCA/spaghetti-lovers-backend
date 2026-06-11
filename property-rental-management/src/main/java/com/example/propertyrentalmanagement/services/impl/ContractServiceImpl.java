@@ -8,11 +8,11 @@ import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.ContractAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.ContractNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.InvalidContractException;
-import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.ContractRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.SignatureService;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -36,6 +36,7 @@ public class ContractServiceImpl implements ContractService {
     private final AppUserRepository appUserRepository;
     private final SignatureService signatureService;
     private final TemplateEngine templateEngine;
+    private final AuthenticatedUserProvider authProvider;
 
     @Override
     public ContractResponse createContract(CreateContractRequest contractRequest) {
@@ -66,13 +67,19 @@ public class ContractServiceImpl implements ContractService {
     }
 
     @Override
-    public ContractResponse signContract(UUID contractId, UUID userId) {
+    public ContractResponse signContract(UUID contractId) {
+        AppUser authUser = authProvider.getCurrentUser();
+
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ContractNotFoundException("Contract not found"));
-        AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
         Reservation reservation = contract.getReservation();
         Property property = reservation.getProperty();
+
+        if ((authUser.getRole() == UserRole.TENANT && !reservation.getTenant().getId().equals(authUser.getId()))
+                || (authUser.getRole() == UserRole.LANDLORD && !property.getLandlord().getId().equals(authUser.getId()))) {
+            throw new InvalidContractException("User is not allowed to sign this contract");
+        }
 
         if (contract.getContractStatus() == ContractStatus.SIGNED) {
             throw new InvalidContractException("Contract already signed");
@@ -93,32 +100,23 @@ public class ContractServiceImpl implements ContractService {
                 .expiresAtTimestamp(contract.getExpiresAtTimestamp())
                 .build();
 
-        if (user.getRole() == UserRole.TENANT) {
+        if (authUser.getRole() == UserRole.TENANT) {
             if (contract.getTenantSignature() != null) {
                 throw new InvalidContractException("Tenant has already signed the contract");
             }
 
-            // TODO: Pending to test reservation and property ownership
-            if (reservation.getTenant().getId() != userId) {
-                throw new InvalidContractException("User is not the tenant of this reservation");
-            }
-
-            Signature tenantSignature = signatureService.createSignature(userId, contractId);
+            Signature tenantSignature = signatureService.createSignature(authUser.getId(), contractId);
             contractToSign.setTenantSignature(tenantSignature);
 
-        } else if (user.getRole() == UserRole.LANDLORD) {
+        } else if (authUser.getRole() == UserRole.LANDLORD) {
             if (contract.getLandlordSignature() != null) {
                 throw new InvalidContractException("Landlord has already signed the contract");
             }
 
-            if (property.getLandlord().getId() != userId) {
-                throw new InvalidContractException("User is not the landlord of this property");
-            }
-
-            Signature landlordSignature = signatureService.createSignature(userId, contractId);
+            Signature landlordSignature = signatureService.createSignature(authUser.getId(), contractId);
             contractToSign.setLandlordSignature(landlordSignature);
         } else {
-            throw new InvalidContractException("User is not allowed to sign contract");
+            throw new InvalidContractException("User is not allowed to sign this contract");
         }
 
         if (contractToSign.getTenantSignature() != null && contractToSign.getLandlordSignature() != null) {

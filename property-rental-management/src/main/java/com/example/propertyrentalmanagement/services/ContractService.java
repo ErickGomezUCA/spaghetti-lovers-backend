@@ -8,5 +8,5 @@ import java.util.UUID;
 public interface ContractService {
     ContractResponse createContract(CreateContractRequest contractRequest);
 
-    ContractResponse signContract(UUID contractId, UUID userId);
+    ContractResponse signContract(UUID contractId);
 }
