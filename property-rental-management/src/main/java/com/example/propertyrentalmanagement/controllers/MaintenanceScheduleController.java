@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,9 +20,10 @@ import java.util.UUID;
 public class MaintenanceScheduleController {
     private final MaintenanceScheduleService maintenanceScheduleService;
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PostMapping
-    ResponseEntity<GenericResponse> createMaintenanceSchedule(@RequestParam(name = "scheduledById") UUID scheduledById, @Valid @RequestBody CreateMaintenanceScheduleRequest request) {
-        MaintenanceScheduleResponse response = maintenanceScheduleService.createMaintenanceSchedule(scheduledById, request);
+    ResponseEntity<GenericResponse> createMaintenanceSchedule(@Valid @RequestBody CreateMaintenanceScheduleRequest createMaintenanceScheduleRequest) {
+        MaintenanceScheduleResponse response = maintenanceScheduleService.createMaintenanceSchedule(createMaintenanceScheduleRequest);
         return GenericResponse.builder()
                 .message("Maintenance schedule created successfully")
                 .data(response)
@@ -30,6 +32,7 @@ public class MaintenanceScheduleController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PostMapping("/{id}")
     ResponseEntity<GenericResponse> startMaintenanceSchedule(@PathVariable UUID id) {
         maintenanceScheduleService.startMaintenanceSchedule(id);
@@ -39,6 +42,7 @@ public class MaintenanceScheduleController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @GetMapping("/property/{propertyId}")
     ResponseEntity<GenericResponse> getMaintenanceSchedulesByPropertyId(@PathVariable UUID propertyId) {
         List<MaintenanceScheduleResponse> maintenanceSchedules = maintenanceScheduleService.getMaintenanceSchedulesByPropertyId(propertyId);

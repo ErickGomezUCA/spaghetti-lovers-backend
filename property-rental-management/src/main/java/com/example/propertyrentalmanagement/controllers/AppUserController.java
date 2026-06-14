@@ -20,11 +20,9 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class AppUserController {
-
     private final AppUserService appUserService;
     private final RatingService ratingService;
 
-    // TODO: Include token in response: [SPL-31] Authentication y Authorization, incluyendo Roles
     @PostMapping("/register")
     ResponseEntity<GenericResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         AuthResponse authResponse = appUserService.createUser(request);
@@ -37,7 +35,6 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
-    // TODO: Include token in response: [SPL-31] Authentication y Authorization, incluyendo Roles
     @PostMapping("/login")
     ResponseEntity<GenericResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = appUserService.login(request);
@@ -48,9 +45,6 @@ public class AppUserController {
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
-
-    // TODO: Get user by auth token (getMe) on: [SPL-31] Authentication y Authorization, incluyendo Roles
-
 
     // TODO: Pending to be implemented on: [SPL-22] Obtener Calificaciones de un Usuario
     @GetMapping("/{userId}/rating")

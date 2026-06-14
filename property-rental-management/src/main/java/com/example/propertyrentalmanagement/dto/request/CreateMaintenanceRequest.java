@@ -9,9 +9,6 @@ import java.util.UUID;
 
 public record CreateMaintenanceRequest(
         @NotNull
-        UUID propertyId,
-
-        @NotNull
         UUID reservationId,
 
         @NotBlank

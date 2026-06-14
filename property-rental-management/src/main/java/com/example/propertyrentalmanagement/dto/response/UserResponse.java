@@ -21,5 +21,15 @@ public record UserResponse(
                 appUser.getPhone()
         );
     }
+
+    public AppUser toEntity() {
+        return AppUser.builder()
+                .id(this.id)
+                .name(this.name)
+                .email(this.email)
+                .role(this.role)
+                .phone(this.phone)
+                .build();
+    }
 }
 
