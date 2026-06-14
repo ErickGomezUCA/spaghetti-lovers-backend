@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
+import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.enums.UserRole;
@@ -12,6 +13,7 @@ import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.security.JwtService;
 import com.example.propertyrentalmanagement.services.AppUserService;
+import com.example.propertyrentalmanagement.services.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RatingService ratingService;
 
     @Override
     public AuthResponse createUser(CreateUserRequest userRequest) {
@@ -84,10 +87,8 @@ public class AppUserServiceImpl implements AppUserService {
 
     // TODO: Pending to be implemented on: [SPL-22] Obtener Calificaciones de un Usuario
     @Override
-    public UserResponse getUserRating(UUID userId) {
-        AppUser userFound = appUserRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return UserResponse.fromEntity(userFound);
+    public UserRatingsResponse getUserRating(UUID userId) {
+        return ratingService.getRatingsByUser(userId);
     }
 
 

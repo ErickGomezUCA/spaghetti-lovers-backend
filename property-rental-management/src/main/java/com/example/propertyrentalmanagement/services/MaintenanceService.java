@@ -9,13 +9,13 @@ import java.util.List;
 import java.util.UUID;
 
 public interface MaintenanceService {
-    MaintenanceResponse createMaintenance(UUID reportedId, CreateMaintenanceRequest maintenanceRequest);
+    MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest);
 
     MaintenanceResponse getMaintenanceById(UUID maintenanceId);
 
     List<MaintenanceResponse> getAllMaintenances();
 
-    MaintenanceResponse confirmMaintenance(UUID landlordId, UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest);
+    MaintenanceResponse confirmMaintenance(UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest);
 
-    MaintenanceResponse resolveMaintenance(UUID landlordId, UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest);
+    MaintenanceResponse resolveMaintenance(UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest);
 }

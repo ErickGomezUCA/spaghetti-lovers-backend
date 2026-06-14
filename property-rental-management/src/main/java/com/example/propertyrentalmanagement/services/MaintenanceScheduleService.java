@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface MaintenanceScheduleService {
-    MaintenanceScheduleResponse createMaintenanceSchedule(UUID scheduledById, CreateMaintenanceScheduleRequest request);
+    MaintenanceScheduleResponse createMaintenanceSchedule(CreateMaintenanceScheduleRequest createMaintenanceScheduleRequest);
 
     void startMaintenanceSchedule(UUID id);
 

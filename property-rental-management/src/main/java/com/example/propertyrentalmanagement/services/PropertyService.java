@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PropertyService {
-    PropertyResponse createProperty(CreatePropertyRequest propertyRequest, UUID landlordId);
+    PropertyResponse createProperty(CreatePropertyRequest propertyRequest);
 
     PropertyResponse attachPhotosToProperty(UUID propertyId, AttachPhotoRequest photoUrls);
 
@@ -19,7 +19,7 @@ public interface PropertyService {
 
     List<PropertyResponse> getPropertiesByLandlordId(UUID landlordId);
 
-    PropertyResponse updateProperty(UUID landlordId, UUID propertyId, UpdatePropertyRequest propertyRequest);
+    PropertyResponse updateProperty(UUID propertyId, UpdatePropertyRequest propertyRequest);
 
     void deleteProperty(UUID propertyId);
 }
