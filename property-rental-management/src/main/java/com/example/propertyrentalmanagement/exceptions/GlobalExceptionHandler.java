@@ -127,6 +127,19 @@ public class GlobalExceptionHandler {
                 .buildResponse();
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<GenericResponse> illegalArgumentException(IllegalArgumentException ex) {
+         CustomErrorResponse errorResponse = new CustomErrorResponse(
+                 java.time.LocalDateTime.now(),
+                 ex.getMessage()
+         );
+          return GenericResponse.builder()
+                  .data(errorResponse)
+                  .status(HttpStatus.BAD_REQUEST)
+                  .build()
+                  .buildResponse();
+    }
+  
     @ExceptionHandler(RatingNotFoundException.class)
     public ResponseEntity<GenericResponse> ratingNotFoundException(RatingNotFoundException ex) {
         CustomErrorResponse errorResponse = new CustomErrorResponse(
@@ -169,7 +182,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<GenericResponse> illegalStateException(IllegalStateException ex) {
-        CustomErrorResponse errorResponsse = new CustomErrorResponse(
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
                 java.time.LocalDateTime.now(),
                 ex.getMessage()
         );
@@ -178,6 +191,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT)
                 .build()
                 .buildResponse();
+    }
   
     @ExceptionHandler(InvalidContractException.class)
     public ResponseEntity<GenericResponse> invalidContractException(InvalidContractException ex) {
