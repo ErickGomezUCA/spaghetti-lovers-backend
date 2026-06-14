@@ -127,13 +127,25 @@ public class GlobalExceptionHandler {
                 .buildResponse();
     }
 
+    @ExceptionHandler(RatingNotFoundException.class)
+    public ResponseEntity<GenericResponse> ratingNotFoundException(RatingNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
+      
     @ExceptionHandler(InvalidReservationCancellationException.class)
     public ResponseEntity<GenericResponse> invalidReservationCancellationException(InvalidReservationCancellationException ex) {
         CustomErrorResponse errorResponse = new CustomErrorResponse(
                 java.time.LocalDateTime.now(),
                 ex.getMessage()
         );
-
         return GenericResponse.builder()
                 .data(errorResponse)
                 .status(HttpStatus.CONFLICT)
@@ -147,7 +159,6 @@ public class GlobalExceptionHandler {
                 java.time.LocalDateTime.now(),
                 ex.getMessage()
         );
-
         return GenericResponse.builder()
                 .data(errorResponse)
                 .status(HttpStatus.NOT_FOUND)
@@ -155,13 +166,25 @@ public class GlobalExceptionHandler {
                 .buildResponse();
     }
 
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<GenericResponse> illegalStateException(IllegalStateException ex) {
+        CustomErrorResponse errorResponsse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.CONFLICT)
+                .build()
+                .buildResponse();
+  
     @ExceptionHandler(InvalidContractException.class)
     public ResponseEntity<GenericResponse> invalidContractException(InvalidContractException ex) {
         CustomErrorResponse errorResponse = new CustomErrorResponse(
                 java.time.LocalDateTime.now(),
                 ex.getMessage()
         );
-
         return GenericResponse.builder()
                 .data(errorResponse)
                 .status(HttpStatus.UNPROCESSABLE_CONTENT)
@@ -175,7 +198,6 @@ public class GlobalExceptionHandler {
                 java.time.LocalDateTime.now(),
                 ex.getMessage()
         );
-
         return GenericResponse.builder()
                 .data(errorResponse)
                 .status(HttpStatus.CONFLICT)
