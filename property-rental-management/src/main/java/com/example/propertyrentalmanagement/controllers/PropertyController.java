@@ -5,9 +5,11 @@ import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
+import com.example.propertyrentalmanagement.dto.response.PropertyReportResponse;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.services.AvailabilityService;
 import com.example.propertyrentalmanagement.services.PropertyService;
+import com.example.propertyrentalmanagement.services.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class PropertyController {
     private final PropertyService propertyService;
     private final AvailabilityService availabilityService;
+    private final ReportService reportService;
 
     @PreAuthorize("@authorizationService.isLandlord()")
     @PostMapping
@@ -127,6 +130,21 @@ public class PropertyController {
         return GenericResponse.builder()
                 .message("Availability checked successfully")
                 .data(availability)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isAdmin()")
+    @GetMapping("/{id}/report")
+    ResponseEntity<GenericResponse> getPropertyReport(
+            @PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        PropertyReportResponse report = reportService.getPropertyReport(id, startDate, endDate);
+        return GenericResponse.builder()
+                .message("Property report generated successfully")
+                .data(report)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
