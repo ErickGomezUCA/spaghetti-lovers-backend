@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.response.AccessCodeResponse;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.ReservationCancellationResponse;
+import com.example.propertyrentalmanagement.dto.response.ReservationCompletionResponse;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ReservationService;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +41,16 @@ public class ReservationController {
                 .data(cancellationResponse)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
+    }
+    @PostMapping("/{reservationId}/complete")
+    ResponseEntity<GenericResponse> completeReservation(@PathVariable UUID reservationId) {
+        ReservationCompletionResponse completionResponse = reservationService.completeReservation(reservationId);
+
+        return GenericResponse.builder()
+                .message("Reservation completed successfully")
+                .data(completionResponse)
+                .status(HttpStatus.OK)
+                .build()
+                .buildResponse();
     }
 }

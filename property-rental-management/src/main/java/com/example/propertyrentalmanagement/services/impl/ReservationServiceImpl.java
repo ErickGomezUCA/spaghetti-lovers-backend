@@ -1,17 +1,11 @@
 package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.response.ReservationCancellationResponse;
-import com.example.propertyrentalmanagement.entitites.AppUser;
-import com.example.propertyrentalmanagement.entitites.Notification;
-import com.example.propertyrentalmanagement.entitites.Reservation;
+import com.example.propertyrentalmanagement.dto.response.ReservationCompletionResponse;
+import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.*;
-import com.example.propertyrentalmanagement.exceptions.InvalidReservationCancellationException;
-import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
-import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
-import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
-import com.example.propertyrentalmanagement.repositories.NotificationRepository;
-import com.example.propertyrentalmanagement.repositories.PaymentRepository;
-import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.exceptions.*;
+import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ReservationService;
@@ -23,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -35,6 +30,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final NotificationRepository notificationRepository;
     private final AccessCodeService accessCodeService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final FineRepository fineRepository;
 
     @Override
     @Transactional
@@ -166,6 +162,160 @@ public class ReservationServiceImpl implements ReservationService {
                 .type(NotificationType.INFO)
                 .title("Reserva cancelada")
                 .message("La reserva ha sido cancelada.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(notification);
+    }
+
+    @Override
+    @Transactional
+    public ReservationCompletionResponse completeReservation(UUID reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        validateCompletionPermission(currentUser, reservation);
+        validateReservationCanBeCompleted(reservation);
+
+        Payment guaranteeDepositPayment = paymentRepository
+                .findByReservationAndPaymentType(reservation, PaymentType.GUARANTEE_DEPOSIT)
+                .orElseThrow(() -> new PaymentNotFoundException("Guarantee deposit payment not found"));
+
+        List<Fine> openFines = fineRepository.findByReservationAndResolvedAtIsNull(reservation);
+
+        List<Fine> openDamageFines = openFines.stream()
+                .filter(fine -> fine.getFineType() == FineType.PROPERTY_DAMAGE)
+                .toList();
+
+        boolean hasOpenNonDamageFines = openFines.stream()
+                .anyMatch(fine -> fine.getFineType() != FineType.PROPERTY_DAMAGE);
+
+        if (hasOpenNonDamageFines) {
+            throw new InvalidReservationCompletionException(
+                    "Reservation has unresolved non-damage fines"
+            );
+        }
+
+        BigDecimal guaranteeDepositAmount = guaranteeDepositPayment.getAmount();
+        BigDecimal totalDamageFineAmount = calculateTotalFineAmount(openDamageFines);
+
+        BigDecimal retainedAmount = guaranteeDepositAmount.min(totalDamageFineAmount);
+        BigDecimal refundAmount = guaranteeDepositAmount.subtract(retainedAmount);
+        BigDecimal additionalFinePaymentAmount = BigDecimal.ZERO;
+
+        guaranteeDepositPayment.setRefundAmount(refundAmount);
+        guaranteeDepositPayment.setRefundedAt(LocalDateTime.now());
+        paymentRepository.save(guaranteeDepositPayment);
+
+        if (totalDamageFineAmount.compareTo(BigDecimal.ZERO) > 0) {
+            if (totalDamageFineAmount.compareTo(guaranteeDepositAmount) <= 0) {
+                markFinesAsResolved(openDamageFines);
+            } else {
+                additionalFinePaymentAmount = totalDamageFineAmount.subtract(guaranteeDepositAmount);
+                createAdditionalFinePayment(
+                        reservation,
+                        guaranteeDepositPayment,
+                        additionalFinePaymentAmount
+                );
+            }
+        }
+
+        LocalDateTime completedAt = LocalDateTime.now();
+
+        reservation.setReservationStatus(ReservationStatus.COMPLETED);
+        reservation.setUpdatedAt(completedAt);
+
+        reservation.getProperty().setPropertyStatus(PropertyStatus.ACTIVE);
+
+        availabilityCalendarRepository.deleteAll(
+                availabilityCalendarRepository.findByReservation(reservation)
+        );
+
+        accessCodeService.invalidateCodesByReservation(reservation);
+
+        createCompletionNotification(reservation, refundAmount, retainedAmount);
+
+        reservationRepository.save(reservation);
+
+        return ReservationCompletionResponse.builder()
+                .reservationId(reservation.getId())
+                .reservationStatus(reservation.getReservationStatus())
+                .guaranteeDepositAmount(guaranteeDepositAmount)
+                .retainedAmount(retainedAmount)
+                .guaranteeDepositRefundAmount(refundAmount)
+                .additionalFinePaymentAmount(additionalFinePaymentAmount)
+                .completedAt(completedAt)
+                .build();
+    }
+
+    private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
+        boolean isPropertyLandlord = reservation.getProperty().getLandlord().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+
+        if (!isPropertyLandlord && !isAdmin) {
+            throw new NotResourceOwnerException("Only the property landlord or admin can complete this reservation");
+        }
+    }
+
+    private void validateReservationCanBeCompleted(Reservation reservation) {
+        if (reservation.getReservationStatus() != ReservationStatus.ACTIVE) {
+            throw new InvalidReservationCompletionException(
+                    "Only active reservations can be completed"
+            );
+        }
+
+        if (reservation.getCheckOutDate().isAfter(LocalDate.now())) {
+            throw new InvalidReservationCompletionException(
+                    "Cannot complete a reservation before check-out date"
+            );
+        }
+    }
+    private BigDecimal calculateTotalFineAmount(List<Fine> fines) {
+        return fines.stream()
+                .map(Fine::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+    private void markFinesAsResolved(List<Fine> fines) {
+        LocalDateTime resolvedAt = LocalDateTime.now();
+
+        fines.forEach(fine -> fine.setResolvedAt(resolvedAt));
+
+        fineRepository.saveAll(fines);
+    }
+    private void createAdditionalFinePayment(
+            Reservation reservation,
+            Payment guaranteeDepositPayment,
+            BigDecimal additionalFinePaymentAmount
+    ) {
+        Payment additionalFinePayment = Payment.builder()
+                .reservation(reservation)
+                .amount(additionalFinePaymentAmount)
+                .paymentType(PaymentType.FINE)
+                .paymentMethod(guaranteeDepositPayment.getPaymentMethod())
+                .refundAmount(BigDecimal.ZERO)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        paymentRepository.save(additionalFinePayment);
+    }
+    private void createCompletionNotification(
+            Reservation reservation,
+            BigDecimal refundAmount,
+            BigDecimal retainedAmount
+    ) {
+        String message = retainedAmount.compareTo(BigDecimal.ZERO) > 0
+                ? "La reserva fue completada. Se reembolsó parte del depósito de garantía y se retuvo un monto por daños."
+                : "La reserva fue completada. El depósito de garantía fue reembolsado completamente.";
+
+        Notification notification = Notification.builder()
+                .user(reservation.getTenant())
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Reserva completada")
+                .message(message)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();

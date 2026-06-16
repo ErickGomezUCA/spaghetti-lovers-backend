@@ -218,4 +218,32 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+
+    @ExceptionHandler(InvalidReservationCompletionException.class)
+    public ResponseEntity<GenericResponse> invalidReservationCompletionException(InvalidReservationCompletionException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.CONFLICT)
+                .build()
+                .buildResponse();
+    }
+
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<GenericResponse> paymentNotFoundException(PaymentNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build()
+                .buildResponse();
+    }
 }
