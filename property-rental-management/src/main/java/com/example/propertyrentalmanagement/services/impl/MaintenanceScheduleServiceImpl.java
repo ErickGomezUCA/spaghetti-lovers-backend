@@ -19,11 +19,13 @@ import com.example.propertyrentalmanagement.repositories.MaintenanceScheduleRepo
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceScheduleService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -97,8 +99,9 @@ public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleServic
     }
 
     @Override
-    public List<MaintenanceScheduleResponse> getMaintenanceSchedulesByPropertyId(UUID propertyId) {
+    public Page<MaintenanceScheduleResponse> getMaintenanceSchedulesByPropertyId(int page, int pageSize, String sortBy, String sortOrder, UUID propertyId) {
         AppUser authUser = authProvider.getCurrentUser();
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
 
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFound("Property not found"));
@@ -107,8 +110,8 @@ public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleServic
             throw new NotResourceOwnerException("User is not the landlord of the property");
         }
 
-        List<MaintenanceSchedule> maintenanceSchedules = maintenanceScheduleRepository.findByPropertyId(propertyId);
-        return maintenanceSchedules.stream().map(MaintenanceScheduleResponse::fromEntity).toList();
+        Page<MaintenanceSchedule> maintenanceSchedules = maintenanceScheduleRepository.findAllByPropertyId(propertyId, pageable);
+        return maintenanceSchedules.map(MaintenanceScheduleResponse::fromEntity);
     }
 
     private LocalDateTime calculateNextScheduledDate(
