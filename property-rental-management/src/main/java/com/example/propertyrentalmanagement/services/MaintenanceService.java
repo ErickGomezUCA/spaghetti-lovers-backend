@@ -4,8 +4,8 @@ import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceReques
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface MaintenanceService {
@@ -13,7 +13,7 @@ public interface MaintenanceService {
 
     MaintenanceResponse getMaintenanceById(UUID maintenanceId);
 
-    List<MaintenanceResponse> getAllMaintenances();
+    Page<MaintenanceResponse> getAllMaintenances(int page, int pageSize, String sortBy, String sortOrder);
 
     MaintenanceResponse confirmMaintenance(UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest);
 

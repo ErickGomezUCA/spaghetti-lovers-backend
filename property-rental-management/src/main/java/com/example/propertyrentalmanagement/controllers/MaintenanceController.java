@@ -5,15 +5,16 @@ import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
+import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,11 +39,17 @@ public class MaintenanceController {
     }
 
     @GetMapping
-    ResponseEntity<GenericResponse> getAllMaintenances() {
-        List<MaintenanceResponse> maintenances = maintenanceService.getAllMaintenances();
+    ResponseEntity<GenericResponse> getAllMaintenances(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "title") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<MaintenanceResponse> maintenances = maintenanceService.getAllMaintenances(page, pageSize, sortBy, sortOrder);
         return GenericResponse.builder()
                 .message("Maintenances found")
-                .data(maintenances)
+                .data(maintenances.getContent())
+                .pagination(PaginationMeta.fromPage(maintenances))
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

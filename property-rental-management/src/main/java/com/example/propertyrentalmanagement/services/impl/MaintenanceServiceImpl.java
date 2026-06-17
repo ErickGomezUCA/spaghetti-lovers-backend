@@ -15,10 +15,12 @@ import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -95,19 +97,20 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public List<MaintenanceResponse> getAllMaintenances() {
+    public Page<MaintenanceResponse> getAllMaintenances(int page, int pageSize, String sortBy, String sortOrder) {
         AppUser authUser = authProvider.getCurrentUser();
-        List<Maintenance> maintenances = Collections.emptyList();
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        Page<Maintenance> maintenances = Page.empty();
 
         if (authUser.getRole() == UserRole.TENANT) {
-            maintenances = maintenanceRepository.findByReportedById(authUser.getId());
+            maintenances = maintenanceRepository.findAllByReportedById(authUser.getId(), pageable);
         } else if (authUser.getRole() == UserRole.LANDLORD) {
-            maintenances = maintenanceRepository.findByPropertyLandlordId(authUser.getId());
+            maintenances = maintenanceRepository.findAllByPropertyLandlordId(authUser.getId(), pageable);
         } else if (authUser.getRole() == UserRole.ADMIN) {
-            maintenances = maintenanceRepository.findAll();
+            maintenances = maintenanceRepository.findAll(pageable);
         }
 
-        return maintenances.stream().map(MaintenanceResponse::fromEntity).toList();
+        return maintenances.map(MaintenanceResponse::fromEntity);
     }
 
     @Override
