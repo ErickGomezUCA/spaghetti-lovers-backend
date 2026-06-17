@@ -6,12 +6,14 @@ import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.PropertyReportResponse;
+import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.services.AvailabilityService;
 import com.example.propertyrentalmanagement.services.PropertyService;
 import com.example.propertyrentalmanagement.services.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +21,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -62,13 +63,18 @@ public class PropertyController {
     }
 
     // TODO: Search properties
-    // TODO: Add pagination
     @GetMapping
-    ResponseEntity<GenericResponse> getAllProperties() {
-        List<PropertyResponse> properties = propertyService.getAllProperties();
+    ResponseEntity<GenericResponse> getAllProperties(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<PropertyResponse> properties = propertyService.getAllProperties(page, pageSize, sortBy, sortOrder);
         return GenericResponse.builder()
-                .message("Properties found")
-                .data(properties)
+                .message("Properties test")
+                .data(properties.getContent())
+                .pagination(PaginationMeta.fromPage(properties))
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
@@ -84,11 +90,18 @@ public class PropertyController {
     }
 
     @GetMapping("/landlord/{landlordId}")
-    ResponseEntity<GenericResponse> getPropertiesByLandlordId(@PathVariable UUID landlordId) {
-        List<PropertyResponse> properties = propertyService.getPropertiesByLandlordId(landlordId);
+    ResponseEntity<GenericResponse> getPropertiesByLandlordId(
+            @PathVariable UUID landlordId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<PropertyResponse> properties = propertyService.getPropertiesByLandlordId(landlordId, page, pageSize, sortBy, sortOrder);
         return GenericResponse.builder()
                 .message("Properties found")
-                .data(properties)
+                .data(properties.getContent())
+                .pagination(PaginationMeta.fromPage(properties))
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

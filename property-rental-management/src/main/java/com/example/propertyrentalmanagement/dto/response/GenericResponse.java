@@ -19,6 +19,7 @@ import java.util.UUID;
 public class GenericResponse {
     private String message;
     private Object data;
+    private PaginationMeta pagination;
     // Avoid including resourceId in the response, because this will shows
     // as part of the Location header
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

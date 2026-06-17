@@ -16,7 +16,10 @@ import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.PropertyService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -86,18 +89,20 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
-    public List<PropertyResponse> getAllProperties() {
-        List<Property> properties = propertyRepository.findAll();
-        return properties.stream().map(PropertyResponse::fromEntity).toList();
+    public Page<PropertyResponse> getAllProperties(int page, int pageSize, String sortBy, String sortOrder) {
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        
+        return propertyRepository.findAll(pageable).map(PropertyResponse::fromEntity);
     }
 
     @Override
-    public List<PropertyResponse> getPropertiesByLandlordId(UUID landlordId) {
+    public Page<PropertyResponse> getPropertiesByLandlordId(UUID landlordId, int page, int pageSize, String sortBy, String sortOrder) {
         appUserRepository.findById(landlordId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        List<Property> properties = propertyRepository.findByLandlordId(landlordId);
-        return properties.stream().map(PropertyResponse::fromEntity).toList();
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+
+        return propertyRepository.findAllByLandlordId(landlordId, pageable).map(PropertyResponse::fromEntity);
     }
 
     @Override
