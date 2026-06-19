@@ -6,6 +6,10 @@ import java.util.List;
 
 public record AttachPhotoRequest(
         @NotEmpty
-        List<String> photoUrls
+        List<PhotoEntry> photoUrls
 ) {
+        public record PhotoEntry(
+                String url,
+                String publicId
+        ) {}
 }
