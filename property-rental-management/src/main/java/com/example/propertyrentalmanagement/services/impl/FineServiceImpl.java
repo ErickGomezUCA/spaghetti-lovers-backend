@@ -116,6 +116,9 @@ public class FineServiceImpl implements FineService {
         }
 
         Payment payment = fine.getPayment();
+        if (request.paymentMethod() == PaymentMethod.PENDING) {
+            throw new BadRequestException("A valid (non-pending) payment method is required.");
+        }
         payment.setPaymentMethod(request.paymentMethod());
         payment.setRefundAmount(java.math.BigDecimal.ZERO);
         payment = paymentRepository.save(payment);
