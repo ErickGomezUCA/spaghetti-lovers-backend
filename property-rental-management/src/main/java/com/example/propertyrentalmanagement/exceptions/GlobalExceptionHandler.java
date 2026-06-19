@@ -246,4 +246,17 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+
+    @ExceptionHandler(FileUploadException.class)
+    public ResponseEntity<GenericResponse> fileUploadException(FileUploadException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build()
+                .buildResponse();
+    }
 }
