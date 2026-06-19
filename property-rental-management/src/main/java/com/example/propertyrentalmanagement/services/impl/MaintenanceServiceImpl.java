@@ -4,23 +4,21 @@ import com.example.propertyrentalmanagement.dto.request.ConfirmMaintenanceReques
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
-import com.example.propertyrentalmanagement.entitites.AppUser;
-import com.example.propertyrentalmanagement.entitites.Maintenance;
-import com.example.propertyrentalmanagement.entitites.MaintenancePhoto;
-import com.example.propertyrentalmanagement.entitites.Property;
+import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.MaintenancePhotoType;
 import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
-import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
-import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
-import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.MaintenancePhotoRepository;
 import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
-import com.example.propertyrentalmanagement.repositories.PropertyRepository;
+import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,31 +30,28 @@ import java.util.UUID;
 public class MaintenanceServiceImpl implements MaintenanceService {
     private final MaintenanceRepository maintenanceRepository;
     private final MaintenancePhotoRepository maintenancePhotoRepository;
-    private final AppUserRepository appUserRepository;
-    private final PropertyRepository propertyRepository;
+    private final ReservationRepository reservationRepository;
+    private final AuthenticatedUserProvider authProvider;
     // TODO: Implement reservationRepository here, on task: [SPL-18] Reservas con fechas fijas (check-in/out)
 
     @Override
-    public MaintenanceResponse createMaintenance(UUID reportedId, CreateMaintenanceRequest maintenanceRequest) {
-        UUID propertyId = maintenanceRequest.propertyId();
+    public MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest) {
+        AppUser authUser = authProvider.getCurrentUser();
+
         UUID reservationId = maintenanceRequest.reservationId();
+        Reservation reservationFound = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        AppUser reportedUserFound = appUserRepository.findById(reportedId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Property property = reservationFound.getProperty();
 
-        Property propertyFound = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new PropertyNotFound("Property not found"));
-
-//        TODO: Check if user is current tenant of the reservation, on task: [SPL-18] Reservas con fechas fijas (check-in/out)
-
-        if (reportedUserFound.getRole() == UserRole.LANDLORD && propertyFound.getLandlord().getId() != reportedId) {
-            throw new NotResourceOwnerException("User is not the landlord of this property");
+        if (!reservationFound.getTenant().getId().equals(authUser.getId())) {
+            throw new RuntimeException("User is not part of the reservation");
         }
 
         Maintenance maintenance = Maintenance.builder()
-                .property(propertyFound)
-                .reservation(null)
-                .reportedBy(reportedUserFound)
+                .property(property) // TODO: Remove property? It can be fetched from reservation either way
+                .reservation(reservationFound)
+                .reportedBy(authUser)
                 .title(maintenanceRequest.title())
                 .description(maintenanceRequest.description())
                 .urgency(maintenanceRequest.urgency())
@@ -87,26 +82,47 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     @Override
     public MaintenanceResponse getMaintenanceById(UUID maintenanceId) {
+        AppUser authUser = authProvider.getCurrentUser();
         Maintenance maintenanceFound = maintenanceRepository.findById(maintenanceId)
                 .orElseThrow(() -> new MaintenanceNotFoundException("Maintenance not found"));
+
+        // If TENANT and user is not part of the reservation, OR if LANDLORD and user is not owner of the property: do not show maintenance requests
+        if ((authUser.getRole() == UserRole.TENANT && !maintenanceFound.getReportedBy().getId().equals(authUser.getId()))
+                || (authUser.getRole() == UserRole.LANDLORD && !maintenanceFound.getProperty().getLandlord().getId().equals(authUser.getId()))
+        ) {
+            throw new MaintenanceNotFoundException("Maintenance not found");
+        }
+
         return MaintenanceResponse.fromEntity(maintenanceFound);
     }
 
     @Override
-    public List<MaintenanceResponse> getAllMaintenances() {
-        List<Maintenance> maintenances = maintenanceRepository.findAll();
-        return maintenances.stream().map(MaintenanceResponse::fromEntity).toList();
+    public Page<MaintenanceResponse> getAllMaintenances(int page, int pageSize, String sortBy, String sortOrder) {
+        AppUser authUser = authProvider.getCurrentUser();
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        Page<Maintenance> maintenances = Page.empty();
+
+        if (authUser.getRole() == UserRole.TENANT) {
+            maintenances = maintenanceRepository.findAllByReportedById(authUser.getId(), pageable);
+        } else if (authUser.getRole() == UserRole.LANDLORD) {
+            maintenances = maintenanceRepository.findAllByPropertyLandlordId(authUser.getId(), pageable);
+        } else if (authUser.getRole() == UserRole.ADMIN) {
+            maintenances = maintenanceRepository.findAll(pageable);
+        }
+
+        return maintenances.map(MaintenanceResponse::fromEntity);
     }
 
     @Override
-    public MaintenanceResponse confirmMaintenance(UUID landlordId, UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest) {
+    public MaintenanceResponse confirmMaintenance(UUID maintenanceId, ConfirmMaintenanceRequest confirmMaintenanceRequest) {
+        AppUser authUser = authProvider.getCurrentUser();
+
         Maintenance maintenanceFound = maintenanceRepository.findById(maintenanceId)
                 .orElseThrow(() -> new MaintenanceNotFoundException("Maintenance not found"));
 
-        Property property = propertyRepository.findById(maintenanceFound.getProperty().getId())
-                .orElseThrow(() -> new PropertyNotFound("Property not found"));
-
-        // TODO: Check ownership
+        if (!maintenanceFound.getProperty().getLandlord().getId().equals(authUser.getId())) {
+            throw new NotResourceOwnerException("User is not landlord of this property");
+        }
 
         maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVING);
         Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
@@ -116,14 +132,15 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public MaintenanceResponse resolveMaintenance(UUID landlordId, UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest) {
+    public MaintenanceResponse resolveMaintenance(UUID maintenanceId, ResolveMaintenanceRequest resolveMaintenanceRequest) {
+        AppUser authUser = authProvider.getCurrentUser();
+
         Maintenance maintenanceFound = maintenanceRepository.findById(maintenanceId)
                 .orElseThrow(() -> new MaintenanceNotFoundException("Maintenance not found"));
 
-        Property property = propertyRepository.findById(maintenanceFound.getProperty().getId())
-                .orElseThrow(() -> new PropertyNotFound("Property not found"));
-
-        // TODO: Check ownership
+        if (!maintenanceFound.getProperty().getLandlord().getId().equals(authUser.getId())) {
+            throw new NotResourceOwnerException("User is not landlord of this property");
+        }
 
         if (resolveMaintenanceRequest.photoUrls() != null && !resolveMaintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = resolveMaintenanceRequest.photoUrls().stream()

@@ -5,14 +5,16 @@ import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
+import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,13 +23,12 @@ import java.util.UUID;
 public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
-    // TODO: Get reportedId from auth token instead of path param, on task: [SPL-31] Authentication y Authorization, incluyendo Roles
+    @PreAuthorize("@authorizationService.isTenant()")
     @PostMapping
     ResponseEntity<GenericResponse> createMaintenance(
-            @RequestParam(name = "reportedId") UUID reportedId,
             @Valid @RequestBody CreateMaintenanceRequest maintenanceRequest
     ) {
-        MaintenanceResponse createdMaintenance = maintenanceService.createMaintenance(reportedId, maintenanceRequest);
+        MaintenanceResponse createdMaintenance = maintenanceService.createMaintenance(maintenanceRequest);
 
         return GenericResponse.builder()
                 .message("Maintenance created successfully")
@@ -38,11 +39,17 @@ public class MaintenanceController {
     }
 
     @GetMapping
-    ResponseEntity<GenericResponse> getAllMaintenances() {
-        List<MaintenanceResponse> maintenances = maintenanceService.getAllMaintenances();
+    ResponseEntity<GenericResponse> getAllMaintenances(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "title") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<MaintenanceResponse> maintenances = maintenanceService.getAllMaintenances(page, pageSize, sortBy, sortOrder);
         return GenericResponse.builder()
                 .message("Maintenances found")
-                .data(maintenances)
+                .data(maintenances.getContent())
+                .pagination(PaginationMeta.fromPage(maintenances))
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
@@ -57,9 +64,12 @@ public class MaintenanceController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PatchMapping("/{id}/confirm")
-    ResponseEntity<GenericResponse> confirmMaintenance(@RequestParam(name = "landlordId") UUID landlordId, @PathVariable UUID id, @Valid @RequestBody ConfirmMaintenanceRequest confirmMaintenanceRequest) {
-        MaintenanceResponse confirmedMaintenance = maintenanceService.confirmMaintenance(landlordId, id, confirmMaintenanceRequest);
+    ResponseEntity<GenericResponse> confirmMaintenance(
+            @PathVariable UUID id,
+            @Valid @RequestBody ConfirmMaintenanceRequest confirmMaintenanceRequest) {
+        MaintenanceResponse confirmedMaintenance = maintenanceService.confirmMaintenance(id, confirmMaintenanceRequest);
         return GenericResponse.builder()
                 .message("Maintenance confirmed")
                 .data(confirmedMaintenance)
@@ -69,8 +79,10 @@ public class MaintenanceController {
     }
 
     @PatchMapping("/{id}/resolve")
-    ResponseEntity<GenericResponse> resolveMaintenance(@RequestParam(name = "landlordId") UUID landlordId, @PathVariable UUID id, @Valid @RequestBody ResolveMaintenanceRequest resolveMaintenanceRequest) {
-        MaintenanceResponse confirmedMaintenance = maintenanceService.resolveMaintenance(landlordId, id, resolveMaintenanceRequest);
+    ResponseEntity<GenericResponse> resolveMaintenance(
+            @PathVariable UUID id,
+            @Valid @RequestBody ResolveMaintenanceRequest resolveMaintenanceRequest) {
+        MaintenanceResponse confirmedMaintenance = maintenanceService.resolveMaintenance(id, resolveMaintenanceRequest);
         return GenericResponse.builder()
                 .message("Maintenance resolved")
                 .data(confirmedMaintenance)
