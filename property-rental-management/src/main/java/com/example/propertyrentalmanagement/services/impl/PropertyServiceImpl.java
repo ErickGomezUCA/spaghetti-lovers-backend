@@ -15,6 +15,7 @@ import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
+import com.example.propertyrentalmanagement.services.CloudinaryService;
 import com.example.propertyrentalmanagement.services.PropertyService;
 import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class PropertyServiceImpl implements PropertyService {
     private final AppUserRepository appUserRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
     private final AuthenticatedUserProvider authProvider;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public PropertyResponse createProperty(CreatePropertyRequest propertyRequest) {
@@ -154,6 +156,13 @@ public class PropertyServiceImpl implements PropertyService {
 
         checkPropertyOwnership(property, authUser);
 
+        // Delete photos from Cloudinary before removing the property, to avoid orphaned files
+        if (property.getPhotos() != null) {
+            property.getPhotos().stream()
+                    .filter(photo -> photo.getCloudinaryPublicId() != null)
+                    .forEach(photo -> cloudinaryService.deleteFile(photo.getCloudinaryPublicId(), "image"));
+        }
+
         propertyRepository.delete(property);
     }
 
@@ -164,12 +173,14 @@ public class PropertyServiceImpl implements PropertyService {
         }
     }
 
-    private PropertyResponse attachPhotosToPropertyByList(Property property, List<String> photoUrls) {
-        List<PropertyPhoto> photos = photoUrls.stream()
+    private PropertyResponse attachPhotosToPropertyByList(Property property, List<AttachPhotoRequest.PhotoEntry> photoEntries) {
+        List<PropertyPhoto> photos = photoEntries.stream()
                 .filter(Objects::nonNull)
-                .map(url -> PropertyPhoto.builder()
+                .filter(entry -> entry.url() != null)
+                .map(entry -> PropertyPhoto.builder()
                         .property(property)
-                        .url(url)
+                        .url(entry.url())
+                        .cloudinaryPublicId(entry.publicId())
                         .build())
                 .toList();
 
