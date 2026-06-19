@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record FineRequest(
+public record CreateFineRequest(
         @NotNull
         UUID reservationId,
 

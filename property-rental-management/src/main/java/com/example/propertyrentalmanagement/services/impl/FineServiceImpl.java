@@ -1,6 +1,6 @@
 package com.example.propertyrentalmanagement.services.impl;
 
-import com.example.propertyrentalmanagement.dto.request.FineRequest;
+import com.example.propertyrentalmanagement.dto.request.CreateFineRequest;
 import com.example.propertyrentalmanagement.dto.response.FineResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.FineType;
@@ -10,8 +10,8 @@ import com.example.propertyrentalmanagement.enums.PaymentType;
 import com.example.propertyrentalmanagement.exceptions.BadRequestException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
-import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.*;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.FineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,21 +27,24 @@ public class FineServiceImpl implements FineService {
     private final ReservationRepository reservationRepository;
     private final PaymentRepository paymentRepository;
     private final NotificationRepository notificationRepository;
-    private final AppUserRepository userRepository;
+
+    private final AuthenticatedUserProvider authProvider;
 
     @Override
     @Transactional
-    public FineResponse createFine(FineRequest request, String currentUsername, boolean isAdmin) {
+    public FineResponse createFine(CreateFineRequest request) {
 
-        AppUser issuedBy = userRepository.findByEmail(currentUsername)
-                .orElseThrow(() -> new UserNotFoundException("User Not Found"));
+        AppUser issuedBy = authProvider.getCurrentUser();
 
         Reservation reservation = reservationRepository.findById(request.reservationId())
-                .orElseThrow(() -> new ReservationNotFoundException(""));
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        boolean isAdmin = issuedBy.getRole().name().equals("ADMIN") || issuedBy.getRole().name().equals("ROLE_ADMIN");
 
         if (!isAdmin) {
             if (!reservation.getProperty().getLandlord().getId().equals(issuedBy.getId())) {
-                throw new NotResourceOwnerException("Permission denied: cannot issue fines for this property.");            }
+                throw new NotResourceOwnerException("Permission denied: cannot issue fines for this property.");
+            }
         }
 
         String status = reservation.getReservationStatus().name();
@@ -88,5 +91,6 @@ public class FineServiceImpl implements FineService {
                 .build();
         notificationRepository.save(notification);
 
-        return FineResponse.fromEntity(fine, payment);    }
+        return FineResponse.fromEntity(fine, payment);
+    }
 }

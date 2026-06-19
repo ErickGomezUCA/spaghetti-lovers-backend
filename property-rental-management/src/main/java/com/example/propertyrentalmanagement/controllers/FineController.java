@@ -1,6 +1,6 @@
 package com.example.propertyrentalmanagement.controllers;
 
-import com.example.propertyrentalmanagement.dto.request.FineRequest;
+import com.example.propertyrentalmanagement.dto.request.CreateFineRequest;
 import com.example.propertyrentalmanagement.dto.response.FineResponse;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.services.FineService;
@@ -24,16 +24,9 @@ public class FineController {
 
     @PostMapping
     @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isAdmin()")
-    public ResponseEntity<GenericResponse> createFine(
-            @Valid @RequestBody FineRequest request,
-            Authentication authentication) {
+    public ResponseEntity<GenericResponse> createFine(@Valid @RequestBody CreateFineRequest request) {
 
-        String username = authentication.getName();
-
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
-
-        FineResponse response = fineService.createFine(request, username, isAdmin);
+        FineResponse response = fineService.createFine(request);
 
         return GenericResponse.builder()
                 .message("Fine created successfully")
