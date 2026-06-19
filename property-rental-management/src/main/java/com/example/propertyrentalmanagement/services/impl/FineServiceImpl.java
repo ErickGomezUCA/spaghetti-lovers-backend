@@ -1,6 +1,7 @@
 package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateFineRequest;
+import com.example.propertyrentalmanagement.dto.request.PayFineRequest;
 import com.example.propertyrentalmanagement.dto.response.FineResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.FineType;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +90,48 @@ public class FineServiceImpl implements FineService {
                 .createdAt(LocalDateTime.now())
                 .isRead(false)
                 .reservation(reservation)
+                .build();
+        notificationRepository.save(notification);
+
+        return FineResponse.fromEntity(fine, payment);
+    }
+
+    @Override
+    @Transactional
+    public FineResponse payFine(UUID fineId, PayFineRequest request) {
+
+        AppUser currentTenant = authProvider.getCurrentUser();
+
+        Fine fine = fineRepository.findById(fineId)
+                .orElseThrow(() -> new BadRequestException("Fine not found."));
+
+        Reservation reservation = fine.getReservation();
+
+        if (!reservation.getTenant().getId().equals(currentTenant.getId())) {
+            throw new NotResourceOwnerException("Permission denied: You are not the tenant for this fine.");
+        }
+
+        if (fine.getResolvedAt() != null) {
+            throw new BadRequestException("This fine has already been paid.");
+        }
+
+        Payment payment = fine.getPayment();
+        payment.setPaymentMethod(request.paymentMethod());
+        payment.setRefundAmount(java.math.BigDecimal.ZERO);
+        payment = paymentRepository.save(payment);
+
+        fine.setResolvedAt(LocalDateTime.now());
+        fine = fineRepository.save(fine);
+
+        AppUser landlord = reservation.getProperty().getLandlord();
+        Notification notification = Notification.builder()
+                .user(landlord)
+                .type(NotificationType.INFO)
+                .title("Fine Paid")
+                .message("The tenant " + currentTenant.getName() + " has paid the fine of $" + fine.getAmount() + " for " + fine.getFineType().name() + ".")
+                .createdAt(LocalDateTime.now())
+                .reservation(reservation)
+                .isRead(false)
                 .build();
         notificationRepository.save(notification);
 
