@@ -33,7 +33,6 @@ import java.util.UUID;
 public class ContractServiceImpl implements ContractService {
     private final ContractRepository contractRepository;
     private final CloudinaryService cloudinaryService;
-    private final FileStorageService fileStorageService;
     private final ReservationRepository reservationRepository; // TODO: See later if it's necessary to call services instead of repos
     private final PropertyRepository propertyRepository;
     private final AppUserRepository appUserRepository;
@@ -53,7 +52,6 @@ public class ContractServiceImpl implements ContractService {
         Reservation reservationFound = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        // TODO: Replace local storage service into cloud service, on task: [SPL-32] Almacenamiento en nube para archivos multimedia
         byte[] pdfBytes = generateContractPdf(reservationFound);
         FileUploadResponse uploadResult = cloudinaryService.uploadGeneratedPdf(pdfBytes, "contract-" + reservationId);
         String createdPdfURL = uploadResult.url();
