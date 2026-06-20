@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services;
 
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
+import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
@@ -19,4 +20,6 @@ public interface AppUserService {
 
     // TODO: If necessary, return value can be changed depending on rating response values
     UserRatingsResponse getUserRating(UUID userId);
+
+    UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest);
 }

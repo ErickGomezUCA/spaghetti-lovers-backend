@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
+import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
@@ -89,6 +90,24 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     public UserRatingsResponse getUserRating(UUID userId) {
         return ratingService.getRatingsByUser(userId);
+    }
+
+    @Override
+    public UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest) {
+        AppUser userFound = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        AppUser userToUpdate = AppUser.builder()
+                .id(userFound.getId())
+                .name(updateUserRequest.name() != null ? updateUserRequest.name() : userFound.getName())
+                .email(updateUserRequest.email() != null ? updateUserRequest.email() : userFound.getEmail())
+                .phone(updateUserRequest.phone() != null ? updateUserRequest.phone() : userFound.getPhone())
+                .passwordHash(userFound.getPasswordHash())
+                .role(userFound.getRole())
+                .build();
+
+        AppUser updatedUser = appUserRepository.save(userToUpdate);
+        return UserResponse.fromEntity(updatedUser);
     }
 
 
