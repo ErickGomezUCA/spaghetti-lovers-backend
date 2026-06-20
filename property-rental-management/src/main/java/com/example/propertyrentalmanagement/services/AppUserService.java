@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.services;
 
+import com.example.propertyrentalmanagement.dto.request.ChangePasswordRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
@@ -22,4 +23,6 @@ public interface AppUserService {
     UserRatingsResponse getUserRating(UUID userId);
 
     UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest);
+
+    void changePassword(UUID userId, ChangePasswordRequest changePasswordRequest);
 }

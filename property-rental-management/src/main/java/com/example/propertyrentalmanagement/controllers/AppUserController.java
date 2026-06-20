@@ -1,9 +1,6 @@
 package com.example.propertyrentalmanagement.controllers;
 
-import com.example.propertyrentalmanagement.dto.request.CreateRatingRequest;
-import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
-import com.example.propertyrentalmanagement.dto.request.LoginRequest;
-import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
+import com.example.propertyrentalmanagement.dto.request.*;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
@@ -47,6 +44,7 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
+    // BUG: Updating email makes getName() to return null
     @PutMapping("/update")
     ResponseEntity<GenericResponse> updateUser(Authentication authentication, @Valid @RequestBody UpdateUserRequest updateUserRequest) {
         UserResponse authUserResponse = appUserService.getUserByEmail(authentication.getName());
@@ -55,6 +53,18 @@ public class AppUserController {
         return GenericResponse.builder()
                 .message("User updated successfully")
                 .data(userResponse)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PostMapping("/change-password")
+    ResponseEntity<GenericResponse> changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        UserResponse authUserResponse = appUserService.getUserByEmail(authentication.getName());
+
+        appUserService.changePassword(authUserResponse.id(), changePasswordRequest);
+
+        return GenericResponse.builder()
+                .message("Password updated successfully")
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

@@ -1,5 +1,6 @@
 package com.example.propertyrentalmanagement.services.impl;
 
+import com.example.propertyrentalmanagement.dto.request.ChangePasswordRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
@@ -108,6 +109,19 @@ public class AppUserServiceImpl implements AppUserService {
 
         AppUser updatedUser = appUserRepository.save(userToUpdate);
         return UserResponse.fromEntity(updatedUser);
+    }
+
+    @Override
+    public void changePassword(UUID userId, ChangePasswordRequest changePasswordRequest) {
+        AppUser userFound = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(changePasswordRequest.oldPassword(), userFound.getPasswordHash())) {
+            throw new InvalidCredentials("Current password is incorrect");
+        }
+
+        userFound.setPasswordHash(passwordEncoder.encode(changePasswordRequest.newPassword()));
+        appUserRepository.save(userFound);
     }
 
 
