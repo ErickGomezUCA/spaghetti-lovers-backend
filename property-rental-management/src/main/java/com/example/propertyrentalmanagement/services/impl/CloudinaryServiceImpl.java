@@ -85,11 +85,16 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
 
         try {
+            String publicId = "doc-" + java.util.UUID.randomUUID() + ".pdf";
+
             Map uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "resource_type", "raw",
-                            "folder", "property-rental/documents"
+                            "folder", "property-rental/documents",
+                            "public_id", publicId,
+                            "use_filename", false,
+                            "unique_filename", false
                     )
             );
 
@@ -116,12 +121,18 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
 
         try {
+            String publicIdWithExtension = publicId.toLowerCase().endsWith(".pdf")
+                    ? publicId
+                    : publicId + ".pdf";
+
             Map uploadResult = cloudinary.uploader().upload(
                     pdfBytes,
                     ObjectUtils.asMap(
                             "resource_type", "raw",
                             "folder", "property-rental/contracts",
-                            "public_id", publicId
+                            "public_id", publicIdWithExtension,
+                            "use_filename", false,
+                            "unique_filename", false
                     )
             );
 

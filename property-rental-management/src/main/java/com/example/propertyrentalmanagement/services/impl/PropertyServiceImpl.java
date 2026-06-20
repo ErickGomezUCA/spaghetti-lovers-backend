@@ -182,10 +182,11 @@ public class PropertyServiceImpl implements PropertyService {
                         .url(entry.url())
                         .cloudinaryPublicId(entry.publicId())
                         .build())
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
         if (!photos.isEmpty()) {
             propertyPhotoRepository.saveAll(photos);
+            property.setPhotos(photos);
             property.setUpdatedAt(LocalDateTime.now());
             propertyRepository.save(property);
         }
