@@ -4,6 +4,10 @@ import java.util.List;
 
 public record ResolveMaintenanceRequest(
         String resolutionNotes,
-        List<String> photoUrls
+        List<PhotoEntry> photoUrls
 ) {
+    public record PhotoEntry(
+            String url,
+            String publicId
+    ) {}
 }

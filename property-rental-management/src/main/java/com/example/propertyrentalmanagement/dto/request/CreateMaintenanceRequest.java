@@ -19,6 +19,11 @@ public record CreateMaintenanceRequest(
         @NotNull
         Urgency urgency,
 
-        List<String> photoUrls
+        List<PhotoEntry> photoUrls
 ) {
+        public record PhotoEntry(
+                String url,
+                String publicId
+        ) {}
+
 }

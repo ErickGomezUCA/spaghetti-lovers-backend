@@ -33,4 +33,7 @@ public class IdentityDocument {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by")
     private AppUser reviewedBy;
+
+    @Column(name = "cloudinary_public_id")
+    private String cloudinaryPublicId;
 }
