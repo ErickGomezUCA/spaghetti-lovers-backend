@@ -140,6 +140,24 @@ public class ContractServiceImpl implements ContractService {
         return ContractResponse.fromEntity(contract);
     }
 
+    @Override
+    public void processContractExtension(Reservation reservation) {
+        Contract contract = contractRepository.findContractByReservationId(reservation.getId());
+
+        if (contract != null && contract.getContractStatus() == ContractStatus.SIGNED) {
+            contract.setContractStatus(ContractStatus.PENDING_SIGNATURES);
+            contract.setTenantSignature(null);
+            contract.setLandlordSignature(null);
+            contract.setExpiresAtTimestamp(LocalDateTime.now().plusHours(48));
+
+            byte[] pdfBytes = generateContractPdf(reservation);
+            String newUrl = cloudinaryService.uploadGeneratedPdf(pdfBytes, "contract-ext-" + reservation.getId()).url();
+            contract.setContentUrl(newUrl);
+
+            contractRepository.save(contract);
+        }
+    }
+
     private byte[] generateContractPdf(Reservation reservation) {
         Property property = reservation.getProperty();
 

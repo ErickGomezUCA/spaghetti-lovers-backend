@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -24,4 +25,15 @@ public interface AvailabilityCalendarRepository extends JpaRepository<Availabili
     );
   
     List<AvailabilityCalendar> findByReservation(Reservation reservation);
+
+    @Query("SELECT ac FROM AvailabilityCalendar ac WHERE ac.property.id = :propertyId " +
+            "AND ac.timestampStart < :newCheckOutTime " +
+            "AND ac.timestampEnd > :currentCheckOutTime " +
+            "AND (ac.reservation IS NULL OR ac.reservation.id != :reservationId)")
+    List<AvailabilityCalendar> findExtensionOverlaps(
+            @Param("propertyId") UUID propertyId,
+            @Param("newCheckOutTime") LocalDateTime newCheckOutTime,
+            @Param("currentCheckOutTime") LocalDateTime currentCheckOutTime,
+            @Param("reservationId") UUID reservationId
+    );
 }
