@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateContractRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateReservationRequest;
+import com.example.propertyrentalmanagement.dto.request.ExtendReservationRequest;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.*;
@@ -405,6 +406,93 @@ public class ReservationServiceImpl implements ReservationService {
                 additionalFinePaymentAmount,
                 completedAt
         );
+    }
+
+    @Override
+    @Transactional
+    public ReservationExtensionResponse extendReservation(UUID reservationId, ExtendReservationRequest request) {
+        AppUser currentTenant = authenticatedUserProvider.getCurrentUser();
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        if (!reservation.getTenant().getId().equals(currentTenant.getId())) {
+            throw new NotResourceOwnerException("You are not allowed to extend this reservation.");
+        }
+
+        String status = reservation.getReservationStatus().name();
+        if (!status.equals("RESERVED") && !status.equals("ACTIVE")) {
+            throw new BadRequestException("Only RESERVED or ACTIVE reservations can be extended.");
+        }
+
+        if (!request.newCheckOutDate().isAfter(reservation.getCheckOutDate())) {
+            throw new BadRequestException("The new check-out date must be after the current check-out date.");
+        }
+
+        if (request.paymentMethod() == PaymentMethod.PENDING) {
+            throw new BadRequestException("A valid payment method is required. 'PENDING' is not allowed for extensions.");
+        }
+
+        LocalDateTime currentCheckOutTime = reservation.getCheckOutDate().atTime(11, 0);
+        LocalDateTime newCheckOutTime = request.newCheckOutDate().atTime(11, 0);
+
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findExtensionOverlaps(
+                reservation.getProperty().getId(),
+                newCheckOutTime,
+                currentCheckOutTime,
+                reservation.getId()
+        );
+
+        if (!overlaps.isEmpty()) {
+            throw new ConflictException("The property is not available for the requested extension dates.");
+        }
+
+        long additionalNights = ChronoUnit.DAYS.between(reservation.getCheckOutDate(), request.newCheckOutDate());
+
+        BigDecimal extensionAmount = reservation.getProperty().getBasePricePerNight()
+                .multiply(BigDecimal.valueOf(additionalNights))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        Payment extensionPayment = Payment.builder()
+                .reservation(reservation)
+                .amount(extensionAmount)
+                .paymentType(PaymentType.EXTENSION)
+                .paymentMethod(request.paymentMethod())
+                .refundAmount(BigDecimal.ZERO)
+                .createdAt(LocalDateTime.now())
+                .build();
+        extensionPayment = paymentRepository.save(extensionPayment);
+
+        reservation.setCheckOutDate(request.newCheckOutDate());
+        reservation.setTotalNights(reservation.getTotalNights() + (int) additionalNights);
+        reservation.setTotalPrice(reservation.getTotalPrice().add(extensionAmount));
+        reservation.setUpdatedAt(LocalDateTime.now());
+        reservationRepository.save(reservation);
+
+        List<AvailabilityCalendar> calendarBlocks = availabilityCalendarRepository.findByReservation(reservation);
+
+        if (!calendarBlocks.isEmpty()) {
+            AvailabilityCalendar calendar = calendarBlocks.getFirst();
+            calendar.setTimestampEnd(newCheckOutTime);
+            availabilityCalendarRepository.save(calendar);
+        }
+
+        accessCodeService.extendAccessCodesValidUntil(reservation, newCheckOutTime);
+
+        contractService.processContractExtension(reservation);
+
+        Notification notification = Notification.builder()
+                .user(reservation.getProperty().getLandlord())
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Reservation Extended")
+                .message("The tenant has extended their reservation. New check-out date is " + request.newCheckOutDate() + ".")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        notificationRepository.save(notification);
+
+        return ReservationExtensionResponse.fromEntity(reservation, extensionPayment);
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
