@@ -24,4 +24,7 @@ public class PropertyPhoto {
 
     @Column(nullable = false)
     private String url;
+
+    @Column(name = "cloudinary_public_id")
+    private String cloudinaryPublicId;
 }

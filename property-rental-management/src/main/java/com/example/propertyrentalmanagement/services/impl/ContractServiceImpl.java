@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.services.impl;
 
 import com.example.propertyrentalmanagement.dto.request.CreateContractRequest;
 import com.example.propertyrentalmanagement.dto.response.ContractResponse;
+import com.example.propertyrentalmanagement.dto.response.FileUploadResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.ContractStatus;
 import com.example.propertyrentalmanagement.enums.UserRole;
@@ -13,6 +14,7 @@ import com.example.propertyrentalmanagement.repositories.ContractRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
+import com.example.propertyrentalmanagement.services.CloudinaryService;
 import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.SignatureService;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -30,7 +32,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ContractServiceImpl implements ContractService {
     private final ContractRepository contractRepository;
-    private final FileStorageService fileStorageService;
+    private final CloudinaryService cloudinaryService;
     private final ReservationRepository reservationRepository; // TODO: See later if it's necessary to call services instead of repos
     private final PropertyRepository propertyRepository;
     private final AppUserRepository appUserRepository;
@@ -50,9 +52,9 @@ public class ContractServiceImpl implements ContractService {
         Reservation reservationFound = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        // TODO: Replace local storage service into cloud service, on task: [SPL-32] Almacenamiento en nube para archivos multimedia
         byte[] pdfBytes = generateContractPdf(reservationFound);
-        String createdPdfURL = fileStorageService.storePdf(pdfBytes, reservationId);
+        FileUploadResponse uploadResult = cloudinaryService.uploadGeneratedPdf(pdfBytes, "contract-" + reservationId);
+        String createdPdfURL = uploadResult.url();
 
         Contract contract = Contract.builder()
                 .reservation(reservationFound)
@@ -125,6 +127,17 @@ public class ContractServiceImpl implements ContractService {
 
         Contract signedContract = contractRepository.save(contractToSign);
         return ContractResponse.fromEntity(signedContract);
+    }
+
+    @Override
+    public ContractResponse getContractByReservationId(UUID reservationId) {
+        Contract contract = contractRepository.findContractByReservationId(reservationId);
+
+        if (contract == null) {
+            return null;
+        }
+
+        return ContractResponse.fromEntity(contract);
     }
 
     private byte[] generateContractPdf(Reservation reservation) {

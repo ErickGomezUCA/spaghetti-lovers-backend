@@ -246,4 +246,42 @@ public class GlobalExceptionHandler {
                 .build()
                 .buildResponse();
     }
+  
+    @ExceptionHandler(FileUploadException.class)
+    public ResponseEntity<GenericResponse> fileUploadException(FileUploadException ex) {
+      CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build()
+                .buildResponse();
+    }
+      
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<GenericResponse> badRequestException(BadRequestException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.BAD_REQUEST)
+                .build().buildResponse();
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<GenericResponse> conflictException(ConflictException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.CONFLICT)
+                .build().buildResponse();
+    }
 }

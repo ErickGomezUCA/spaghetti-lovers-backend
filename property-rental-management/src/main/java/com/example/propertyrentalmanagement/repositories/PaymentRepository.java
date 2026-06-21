@@ -28,4 +28,6 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             @Param("reservationIds") List<UUID> reservationIds,
             @Param("paymentTypes") List<PaymentType> paymentTypes
     );
+
+    List<Payment> findByReservation(Reservation reservation);
 }

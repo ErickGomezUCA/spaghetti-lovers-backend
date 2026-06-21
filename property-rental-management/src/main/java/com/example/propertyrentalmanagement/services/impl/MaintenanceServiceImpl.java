@@ -63,9 +63,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (maintenanceRequest.photoUrls() != null && !maintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = maintenanceRequest.photoUrls().stream()
                     .filter(Objects::nonNull)
-                    .map(url -> MaintenancePhoto.builder()
+                    .filter(entry -> entry.url() != null)
+                    .map(entry -> MaintenancePhoto.builder()
                             .maintenance(createdMaintenance)
-                            .url(url)
+                            .url(entry.url())
+                            .cloudinaryPublicId(entry.publicId())
                             .photoType(MaintenancePhotoType.REQUEST)
                             .build())
                     .toList();
@@ -145,9 +147,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (resolveMaintenanceRequest.photoUrls() != null && !resolveMaintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = resolveMaintenanceRequest.photoUrls().stream()
                     .filter(Objects::nonNull)
-                    .map(url -> MaintenancePhoto.builder()
+                    .filter(entry -> entry.url() != null)
+                    .map(entry -> MaintenancePhoto.builder()
                             .maintenance(maintenanceFound)
-                            .url(url)
+                            .url(entry.url())
+                            .cloudinaryPublicId(entry.publicId())
                             .photoType(MaintenancePhotoType.RESPONSE)
                             .build())
                     .toList();

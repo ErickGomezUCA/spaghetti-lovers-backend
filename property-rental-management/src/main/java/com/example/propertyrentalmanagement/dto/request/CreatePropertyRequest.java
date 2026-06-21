@@ -61,6 +61,6 @@ public record CreatePropertyRequest(
         String rules,
 
 //        Optionals
-        List<String> photoUrls
+        List<AttachPhotoRequest.PhotoEntry> photoUrls
 ) {
 }
