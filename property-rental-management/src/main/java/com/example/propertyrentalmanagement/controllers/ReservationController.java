@@ -1,6 +1,7 @@
 package com.example.propertyrentalmanagement.controllers;
 
 import com.example.propertyrentalmanagement.dto.request.CreateReservationRequest;
+import com.example.propertyrentalmanagement.dto.request.ExtendReservationRequest;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ReservationService;
@@ -75,5 +76,20 @@ public class ReservationController {
                 .status(HttpStatus.OK)
                 .build()
                 .buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isTenant()")
+    @PostMapping("/{reservationId}/extend")
+    public ResponseEntity<GenericResponse> extendReservation(
+            @PathVariable UUID reservationId,
+            @Valid @RequestBody ExtendReservationRequest request) {
+
+        ReservationExtensionResponse response = reservationService.extendReservation(reservationId, request);
+
+        return GenericResponse.builder()
+                .message("Reservation extended successfully")
+                .data(response)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
     }
 }

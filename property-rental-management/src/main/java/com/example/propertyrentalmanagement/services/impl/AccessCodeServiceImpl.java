@@ -83,6 +83,15 @@ public class AccessCodeServiceImpl implements AccessCodeService {
         accessCodeRepository.saveAll(accessCodes);
     }
 
+    @Override
+    public void extendAccessCodesValidUntil(Reservation reservation, LocalDateTime newValidUntil) {
+        accessCodeRepository.findByReservationAndIsActiveTrueAndCodeType(reservation, CodeType.ACCESS_CODE)
+                .ifPresent(accessCode -> {
+                    accessCode.setValidUntil(newValidUntil);
+                    accessCodeRepository.save(accessCode);
+                });
+    }
+
     private void validateReservationAccess(AppUser currentUser, Reservation reservation) {
         boolean isTenantOwner = reservation.getTenant().getId().equals(currentUser.getId());
         boolean isPropertyLandlord = reservation.getProperty().getLandlord().getId().equals(currentUser.getId());

@@ -24,4 +24,15 @@ public interface AvailabilityCalendarRepository extends JpaRepository<Availabili
     );
   
     List<AvailabilityCalendar> findByReservation(Reservation reservation);
+
+    @Query("SELECT ac FROM AvailabilityCalendar ac WHERE ac.property.id = :propertyId " +
+            "AND ac.timestampStart < :newCheckOutTime " +
+            "AND ac.timestampEnd > :currentCheckOutTime " +
+            "AND (ac.reservation IS NULL OR ac.reservation.id != :reservationId)")
+    List<AvailabilityCalendar> findExtensionOverlaps(
+            @Param("propertyId") UUID propertyId,
+            @Param("newCheckOutTime") LocalDateTime newCheckOutTime,
+            @Param("currentCheckOutTime") LocalDateTime currentCheckOutTime,
+            @Param("reservationId") UUID reservationId
+    );
 }

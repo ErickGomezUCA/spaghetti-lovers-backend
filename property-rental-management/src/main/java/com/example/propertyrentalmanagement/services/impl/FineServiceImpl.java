@@ -56,6 +56,19 @@ public class FineServiceImpl implements FineService {
             if (!status.equals("ACTIVE")) {
                 throw new BadRequestException("'ACTIVE' reservation required for this fine type.");
             }
+
+            if (type == FineType.NOISE_VIOLATION) {
+                boolean isOccupiedRightNow = reservationRepository.isPropertyOccupiedToday(reservation.getProperty().getId(), java.time.LocalDate.now());
+                if (!isOccupiedRightNow) {
+                    throw new BadRequestException("Cannot issue a noise violation: the tenant is not physically occupying the property today.");
+                }
+            } else {
+                LocalDateTime checkoutLimit = reservation.getCheckOutDate().atTime(11, 0);
+                if (LocalDateTime.now().isBefore(checkoutLimit)) {
+                    throw new BadRequestException("Cannot issue a late checkout fine. The tenant still has time until " + checkoutLimit.toLocalTime() + ".");
+                }
+            }
+
         } else if (type == FineType.PROPERTY_DAMAGE) {
             if (!status.equals("ACTIVE") && !status.equals("COMPLETED")) {
                 throw new BadRequestException("Property damage fines require an 'ACTIVE' or 'COMPLETED' reservation.");
