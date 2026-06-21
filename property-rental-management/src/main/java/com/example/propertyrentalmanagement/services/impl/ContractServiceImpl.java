@@ -127,6 +127,17 @@ public class ContractServiceImpl implements ContractService {
         return ContractResponse.fromEntity(signedContract);
     }
 
+    @Override
+    public ContractResponse getContractByReservationId(UUID reservationId) {
+        Contract contract = contractRepository.findContractByReservationId(reservationId);
+
+        if (contract == null) {
+            return null;
+        }
+
+        return ContractResponse.fromEntity(contract);
+    }
+
     private byte[] generateContractPdf(Reservation reservation) {
         Property property = reservation.getProperty();
 
