@@ -465,6 +465,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         reservation.setCheckOutDate(request.newCheckOutDate());
         reservation.setTotalNights(reservation.getTotalNights() + (int) additionalNights);
+        reservation.setBaseTotal(reservation.getBaseTotal().add(extensionAmount));
         reservation.setTotalPrice(reservation.getTotalPrice().add(extensionAmount));
         reservation.setUpdatedAt(LocalDateTime.now());
         reservationRepository.save(reservation);
