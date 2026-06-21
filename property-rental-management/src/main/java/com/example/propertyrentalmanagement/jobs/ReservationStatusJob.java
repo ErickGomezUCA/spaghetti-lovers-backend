@@ -31,6 +31,7 @@ public class ReservationStatusJob {
         }
 
         reservationRepository.saveAll(checkInsToday);
-        System.out.println("Auto Check-In completed for " + checkInsToday.size() + " reservations.");
+        java.util.logging.Logger.getLogger(ReservationStatusJob.class.getName())
+                .info("Auto Check-In completed for " + checkInsToday.size() + " reservations.");
     }
 }

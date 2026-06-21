@@ -16,9 +16,11 @@ public record CreateReservationRequest(
         LocalDate checkInDate,
 
         @NotNull
+        @FutureOrPresent(message = "Check-out date must be a date in the present or in the future")
         LocalDate checkOutDate,
 
         @Min(1)
+        @NotNull
         Integer guestsCount,
 
         @NotNull

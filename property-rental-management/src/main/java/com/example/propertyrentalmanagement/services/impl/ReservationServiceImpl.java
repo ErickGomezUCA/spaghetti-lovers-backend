@@ -49,8 +49,12 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BadRequestException("Property is not available for new reservations.");
         }
 
-        if (request.paymentMethod().name().equals("PENDING")) {
+        if (request.paymentMethod() == PaymentMethod.PENDING) {
             throw new BadRequestException("Payment method cannot be PENDING for new reservations.");
+        }
+
+        if (!request.checkOutDate().isAfter(request.checkInDate())) {
+            throw new BadRequestException("Check-out date must be after check-in date.");
         }
 
         LocalDateTime checkInTime = request.checkInDate().atTime(13, 0);
@@ -175,7 +179,8 @@ public class ReservationServiceImpl implements ReservationService {
         String activeAccessCode = null;
         try {
             activeAccessCode = accessCodeService.getActiveAccessCodeByReservationId(reservationId).code();
-        } catch (Exception ignored) {
+        } catch (AccessCodeNotFoundException | IllegalStateException ex) {
+            // No active/valid access code available yet; keep null
         }
 
         return ReservationDetailResponse.fromEntity(

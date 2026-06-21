@@ -31,14 +31,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     );
 
     @Query("SELECT COUNT(r) > 0 FROM Reservation r WHERE r.tenant.id = :tenantId " +
-            "AND r.reservationStatus IN ('RESERVED', 'ACTIVE') " +
+            "AND r.reservationStatus IN (com.example.propertyrentalmanagement.enums.ReservationStatus.RESERVED, " +
+            "com.example.propertyrentalmanagement.enums.ReservationStatus.ACTIVE) " +
             "AND (:checkIn < r.checkOutDate AND :checkOut > r.checkInDate)")
     boolean hasOverlappingReservations(@Param("tenantId") UUID tenantId,
                                        @Param("checkIn") LocalDate checkIn,
                                        @Param("checkOut") LocalDate checkOut);
 
     @Query("SELECT COUNT(r) > 0 FROM Reservation r WHERE r.property.id = :propertyId " +
-            "AND r.reservationStatus IN ('RESERVED', 'ACTIVE')" +
+            "AND r.reservationStatus IN (com.example.propertyrentalmanagement.enums.ReservationStatus.RESERVED, " +
+            "com.example.propertyrentalmanagement.enums.ReservationStatus.ACTIVE) " +
             "AND r.checkInDate <= :today AND r.checkOutDate >= :today")
     boolean isPropertyOccupiedToday(@Param("propertyId") UUID propertyId,
                                     @Param("today") LocalDate today);
