@@ -9,4 +9,6 @@ public interface ContractService {
     ContractResponse createContract(CreateContractRequest contractRequest);
 
     ContractResponse signContract(UUID contractId);
+
+    ContractResponse getContractByReservationId(UUID reservationId);
 }
