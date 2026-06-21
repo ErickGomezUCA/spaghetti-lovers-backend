@@ -1,19 +1,22 @@
 package com.example.propertyrentalmanagement.services.impl;
 
-import com.example.propertyrentalmanagement.dto.response.ReservationCancellationResponse;
-import com.example.propertyrentalmanagement.dto.response.ReservationCompletionResponse;
+import com.example.propertyrentalmanagement.dto.request.CreateContractRequest;
+import com.example.propertyrentalmanagement.dto.request.CreateReservationRequest;
+import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.*;
 import com.example.propertyrentalmanagement.exceptions.*;
 import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
+import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -31,6 +34,158 @@ public class ReservationServiceImpl implements ReservationService {
     private final AccessCodeService accessCodeService;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final FineRepository fineRepository;
+    private final PropertyRepository propertyRepository;
+    private final ContractService contractService;
+
+    @Override
+    @Transactional
+    public ReservationResponse createReservation(CreateReservationRequest request) {
+        AppUser tenant = authenticatedUserProvider.getCurrentUser();
+
+        Property property = propertyRepository.findById(request.propertyId())
+                .orElseThrow(() -> new PropertyNotFound("Property not found"));
+
+        if (property.getPropertyStatus() == PropertyStatus.UNAVAILABLE) {
+            throw new BadRequestException("Property is not available for new reservations.");
+        }
+
+        if (request.paymentMethod().name().equals("PENDING")) {
+            throw new BadRequestException("Payment method cannot be PENDING for new reservations.");
+        }
+
+        LocalDateTime checkInTime = request.checkInDate().atTime(13, 0);
+        LocalDateTime checkOutTime = request.checkOutDate().atTime(11, 0);
+
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository
+                .findOverlappingBlocks(property.getId(), checkInTime, checkOutTime);
+
+        if (!overlaps.isEmpty()) {
+            throw new ConflictException("The property is already booked for these dates.");
+        }
+
+        if (reservationRepository.hasOverlappingReservations(tenant.getId(), request.checkInDate(), request.checkOutDate())) {
+            throw new ConflictException("You already have an active reservation during these dates.");
+        }
+
+        long totalNights = ChronoUnit.DAYS.between(request.checkInDate(), request.checkOutDate());
+
+        BigDecimal baseTotal = property.getBasePricePerNight()
+                .multiply(BigDecimal.valueOf(totalNights))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal cleaningFee = property.getCleaningFee().setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal discount = totalNights >= 28
+                ? baseTotal.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal securityDeposit = property.getSecurityDepositAmount().setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal totalPrice = baseTotal.add(cleaningFee).subtract(discount).add(securityDeposit)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        Reservation reservation = Reservation.builder()
+                .property(property)
+                .tenant(tenant)
+                .checkInDate(request.checkInDate())
+                .checkOutDate(request.checkOutDate())
+                .guestsCount(request.guestsCount())
+                .totalNights((int) totalNights)
+                .baseTotal(baseTotal)
+                .cleaningFee(cleaningFee)
+                .longStayDiscount(discount)
+                .totalPrice(totalPrice)
+                .reservationStatus(ReservationStatus.RESERVED)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        reservation = reservationRepository.save(reservation);
+
+        createPayment(reservation, baseTotal.add(cleaningFee).subtract(discount), PaymentType.RESERVATION, request.paymentMethod());
+        createPayment(reservation, securityDeposit, PaymentType.GUARANTEE_DEPOSIT, request.paymentMethod());
+
+        AvailabilityCalendar block = AvailabilityCalendar.builder()
+                .property(property)
+                .timestampStart(checkInTime)
+                .timestampEnd(checkOutTime)
+                .blockType(BlockType.RESERVATION)
+                .reservation(reservation)
+                .build();
+        availabilityCalendarRepository.save(block);
+
+        property.setPropertyStatus(PropertyStatus.RESERVED);
+        propertyRepository.save(property);
+
+        Notification notification = Notification.builder()
+                .user(property.getLandlord())
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("New Reservation")
+                .message("You have a new reservation for your property.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        notificationRepository.save(notification);
+
+        accessCodeService.generateAccessCodeForReservation(reservation);
+
+        contractService.createContract(new CreateContractRequest(reservation.getId()));
+
+        return ReservationResponse.fromEntity(reservation);
+    }
+
+    private void createPayment(Reservation res, BigDecimal amount, PaymentType type, PaymentMethod method) {
+        Payment p = Payment.builder()
+                .reservation(res)
+                .amount(amount)
+                .paymentType(type)
+                .paymentMethod(method)
+                .refundAmount(BigDecimal.ZERO)
+                .createdAt(LocalDateTime.now())
+                .build();
+        paymentRepository.save(p);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReservationDetailResponse getReservationById(UUID reservationId) {
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        boolean isTenantOwner = reservation.getTenant().getId().equals(currentUser.getId());
+        boolean isPropertyLandlord = reservation.getProperty().getLandlord().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+
+        if (!isTenantOwner && !isPropertyLandlord && !isAdmin) {
+            throw new NotResourceOwnerException("You do not have permission to view this reservation.");
+        }
+
+        List<Payment> payments = paymentRepository.findByReservation(reservation);
+        List<PaymentResponse> paymentResponses = payments.stream()
+                .map(PaymentResponse::fromEntity)
+                .toList();
+
+        ContractResponse contractResponse = contractService.getContractByReservationId(reservationId);
+
+        PropertySummaryResponse propertySummary = PropertySummaryResponse.fromEntity(reservation.getProperty());
+
+        String activeAccessCode = null;
+        try {
+            activeAccessCode = accessCodeService.getActiveAccessCodeByReservationId(reservationId).code();
+        } catch (Exception ignored) {
+        }
+
+        return ReservationDetailResponse.fromEntity(
+                reservation,
+                propertySummary,
+                activeAccessCode,
+                paymentResponses,
+                contractResponse
+        );
+    }
 
     @Override
     @Transactional
@@ -76,16 +231,13 @@ public class ReservationServiceImpl implements ReservationService {
                 .add(cleaningFeeRefundAmount)
                 .add(guaranteeDepositRefundAmount);
 
-        return ReservationCancellationResponse.builder()
-                .reservationId(reservation.getId())
-                .reservationStatus(reservation.getReservationStatus())
-                .cancellationPenalty(cancellationPenalty)
-                .reservationRefundAmount(reservationRefundAmount)
-                .cleaningFeeRefundAmount(cleaningFeeRefundAmount)
-                .guaranteeDepositRefundAmount(guaranteeDepositRefundAmount)
-                .totalRefundAmount(totalRefundAmount)
-                .cancelledAt(cancelledAt)
-                .build();
+        return ReservationCancellationResponse.fromEntity(
+                reservation,
+                reservationRefundAmount,
+                cleaningFeeRefundAmount,
+                guaranteeDepositRefundAmount,
+                totalRefundAmount
+        );
     }
 
     private void validateCancellationPermission(AppUser currentUser, Reservation reservation) {
@@ -160,8 +312,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .user(receiver)
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reserva cancelada")
-                .message("La reserva ha sido cancelada.")
+                .title("Reservation Cancelled")
+                .message("The reservation has been cancelled.")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -240,15 +392,14 @@ public class ReservationServiceImpl implements ReservationService {
 
         reservationRepository.save(reservation);
 
-        return ReservationCompletionResponse.builder()
-                .reservationId(reservation.getId())
-                .reservationStatus(reservation.getReservationStatus())
-                .guaranteeDepositAmount(guaranteeDepositAmount)
-                .retainedAmount(retainedAmount)
-                .guaranteeDepositRefundAmount(refundAmount)
-                .additionalFinePaymentAmount(additionalFinePaymentAmount)
-                .completedAt(completedAt)
-                .build();
+        return ReservationCompletionResponse.fromEntity(
+                reservation,
+                guaranteeDepositAmount,
+                retainedAmount,
+                refundAmount,
+                additionalFinePaymentAmount,
+                completedAt
+        );
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
@@ -307,14 +458,14 @@ public class ReservationServiceImpl implements ReservationService {
             BigDecimal retainedAmount
     ) {
         String message = retainedAmount.compareTo(BigDecimal.ZERO) > 0
-                ? "La reserva fue completada. Se reembolsó parte del depósito de garantía y se retuvo un monto por daños."
-                : "La reserva fue completada. El depósito de garantía fue reembolsado completamente.";
+                ? "The reservation was completed. A portion of the guarantee deposit was refunded and an amount was retained for damages."
+                : "The reservation was completed. The guarantee deposit was fully refunded.";
 
         Notification notification = Notification.builder()
                 .user(reservation.getTenant())
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reserva completada")
+                .title("Reservation Completed")
                 .message(message)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
