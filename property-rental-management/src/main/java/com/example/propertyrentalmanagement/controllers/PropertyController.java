@@ -8,6 +8,8 @@ import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.PropertyReportResponse;
 import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
+import com.example.propertyrentalmanagement.enums.PropertyStatus;
+import com.example.propertyrentalmanagement.enums.PropertyType;
 import com.example.propertyrentalmanagement.services.AvailabilityService;
 import com.example.propertyrentalmanagement.services.PropertyService;
 import com.example.propertyrentalmanagement.services.ReportService;
@@ -62,17 +64,21 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
-    // TODO: Search properties
     @GetMapping
     ResponseEntity<GenericResponse> getAllProperties(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortOrder
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) String term,
+            @RequestParam(required = false) PropertyType propertyType,
+            @RequestParam(required = false) Integer minGuests,
+            @RequestParam(required = false) PropertyStatus status
     ) {
-        Page<PropertyResponse> properties = propertyService.getAllProperties(page, pageSize, sortBy, sortOrder);
+        Page<PropertyResponse> properties = propertyService.getAllProperties(
+                page, pageSize, sortBy, sortOrder, term, propertyType, minGuests, status);
         return GenericResponse.builder()
-                .message("Properties test")
+                .message("Properties found")
                 .data(properties.getContent())
                 .pagination(PaginationMeta.fromPage(properties))
                 .status(HttpStatus.OK)

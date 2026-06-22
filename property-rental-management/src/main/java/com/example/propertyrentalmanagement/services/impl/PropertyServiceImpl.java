@@ -8,6 +8,7 @@ import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Property;
 import com.example.propertyrentalmanagement.entitites.PropertyPhoto;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
+import com.example.propertyrentalmanagement.enums.PropertyType;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
@@ -93,10 +94,12 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
-    public Page<PropertyResponse> getAllProperties(int page, int pageSize, String sortBy, String sortOrder) {
+    public Page<PropertyResponse> getAllProperties(int page, int pageSize, String sortBy, String sortOrder,
+                                                   String term, PropertyType propertyType, Integer minGuests, PropertyStatus status) {
         Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
-        
-        return propertyRepository.findAll(pageable).map(PropertyResponse::fromEntity);
+        String termParam = (term == null || term.isBlank()) ? null : term;
+        return propertyRepository.searchProperties(termParam, propertyType, minGuests, status, pageable)
+                .map(PropertyResponse::fromEntity);
     }
 
     @Override
