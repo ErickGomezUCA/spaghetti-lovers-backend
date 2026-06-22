@@ -93,7 +93,6 @@ public class AppUserServiceImpl implements AppUserService {
         return UserResponse.fromEntity(userFound);
     }
 
-    // TODO: Pending to be implemented on: [SPL-22] Obtener Calificaciones de un Usuario
     @Override
     public UserRatingsResponse getUserRating(UUID userId) {
         return ratingService.getRatingsByUser(userId);
@@ -130,6 +129,7 @@ public class AppUserServiceImpl implements AppUserService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole(),
+                user.getCreatedAt(),
                 propertiesCount,
                 reservationsCount,
                 completedReservationsCount,
@@ -151,6 +151,7 @@ public class AppUserServiceImpl implements AppUserService {
                 .phone(updateUserRequest.phone() != null ? updateUserRequest.phone() : userFound.getPhone())
                 .passwordHash(userFound.getPasswordHash())
                 .role(userFound.getRole())
+                .createdAt(userFound.getCreatedAt())
                 .build();
 
         AppUser updatedUser = appUserRepository.save(userToUpdate);

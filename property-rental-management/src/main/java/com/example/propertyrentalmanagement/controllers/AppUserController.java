@@ -73,7 +73,6 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
-    // TODO: Pending to be implemented on: [SPL-22] Obtener Calificaciones de un Usuario
     @GetMapping("/{userId}/rating")
     ResponseEntity<GenericResponse> getUserRating(@PathVariable UUID userId) {
         UserRatingsResponse ratingsFound = appUserService.getUserRating(userId);

@@ -3,7 +3,9 @@ package com.example.propertyrentalmanagement.entitites;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,4 +35,8 @@ public class AppUser {
     private UserRole role;
 
     private String phone;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }
