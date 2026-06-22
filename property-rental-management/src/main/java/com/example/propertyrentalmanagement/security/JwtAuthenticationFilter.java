@@ -2,6 +2,7 @@ package com.example.propertyrentalmanagement.security;
 
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,19 +10,21 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final CustomUserDetailsService customUserDetailsService;
     private final AppUserRepository appUserRepository;
 
     @Override
@@ -39,27 +42,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String email = jwtService.extractEmail(token);
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            AppUser user = appUserRepository.findByEmail(email).orElse(null);
+        try {
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                UUID userId = jwtService.extractUserId(token);
 
-            if (user != null && jwtService.isTokenValid(token, user)) {
-                var userDetails = customUserDetailsService.loadUserByUsername(email);
+                AppUser user = appUserRepository.findById(userId).orElse(null);
 
-                UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                if (user != null && jwtService.isTokenValid(token, user)) {
+                    CustomUserDetails userDetails = new CustomUserDetails(
+                            user.getId(),
+                            user.getEmail(),
+                            user.getPasswordHash(),
+                            user.getRole(),
+                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                    );
 
-                authenticationToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    authenticationToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
             }
+        } catch (JwtException | IllegalArgumentException exception) {
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

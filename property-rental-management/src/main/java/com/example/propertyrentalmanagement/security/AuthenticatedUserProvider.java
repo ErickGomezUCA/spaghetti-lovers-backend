@@ -8,6 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class AuthenticatedUserProvider {
@@ -17,11 +19,21 @@ public class AuthenticatedUserProvider {
     public AppUser getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || authentication.getName() == null) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             throw new UserNotFoundException("Authenticated user not found");
         }
 
-        return appUserRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof CustomUserDetails userDetails) {
+            return appUserRepository.findById(userDetails.getId())
+                    .orElseThrow(() -> new UserNotFoundException("Authenticated user not found"));
+        }
+
+        throw new UserNotFoundException("Authenticated user not found");
+    }
+
+    public UUID getCurrentUserId() {
+        return getCurrentUser().getId();
     }
 }

@@ -9,8 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class AppUserController {
     private final AppUserService appUserService;
     private final RatingService ratingService;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @PostMapping("/register")
     ResponseEntity<GenericResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
@@ -46,9 +48,10 @@ public class AppUserController {
 
     // BUG: Updating email makes getName() to return null
     @PutMapping("/update")
-    ResponseEntity<GenericResponse> updateUser(Authentication authentication, @Valid @RequestBody UpdateUserRequest updateUserRequest) {
-        UserResponse authUserResponse = appUserService.getUserByEmail(authentication.getName());
-        UserResponse userResponse = appUserService.updateUser(authUserResponse.id(), updateUserRequest);
+    ResponseEntity<GenericResponse> updateUser(@Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        UserResponse userResponse = appUserService.updateUser(currentUser.getId(), updateUserRequest);
 
         return GenericResponse.builder()
                 .message("User updated successfully")
@@ -58,10 +61,10 @@ public class AppUserController {
     }
 
     @PostMapping("/change-password")
-    ResponseEntity<GenericResponse> changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        UserResponse authUserResponse = appUserService.getUserByEmail(authentication.getName());
+    ResponseEntity<GenericResponse> changePassword(@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
-        appUserService.changePassword(authUserResponse.id(), changePasswordRequest);
+        appUserService.changePassword(currentUser.getId(), changePasswordRequest);
 
         return GenericResponse.builder()
                 .message("Password updated successfully")
@@ -92,8 +95,10 @@ public class AppUserController {
     }
 
     @GetMapping("/me")
-    ResponseEntity<GenericResponse> getAuthenticatedUser(Authentication authentication) {
-        UserResponse userFound = appUserService.getUserByEmail(authentication.getName());
+    ResponseEntity<GenericResponse> getAuthenticatedUser() {
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        UserResponse userFound = appUserService.getUserById(currentUser.getId());
 
         return GenericResponse.builder()
                 .message("Authenticated user found")
