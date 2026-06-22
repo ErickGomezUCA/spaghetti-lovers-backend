@@ -107,7 +107,7 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
-    @GetMapping("/me/profile")
+    @GetMapping("/profile")
     ResponseEntity<GenericResponse> getAuthenticatedUserProfile(Authentication authentication) {
         UserProfileResponse profile = appUserService.getUserProfile(authentication.getName());
 

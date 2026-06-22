@@ -53,7 +53,7 @@ public class SecurityConfig {
                                 "/api/properties/*/availability"
                         ).permitAll()
 
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
