@@ -26,6 +26,7 @@ import org.thymeleaf.context.Context;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -127,6 +128,16 @@ public class ContractServiceImpl implements ContractService {
 
         Contract signedContract = contractRepository.save(contractToSign);
         return ContractResponse.fromEntity(signedContract);
+    }
+
+    @Override
+    public List<ContractResponse> getContractsByUser(AppUser user) {
+        List<Contract> contracts = switch (user.getRole()) {
+            case TENANT -> contractRepository.findByReservationTenantId(user.getId());
+            case LANDLORD -> contractRepository.findByReservationPropertyLandlordId(user.getId());
+            default -> List.of();
+        };
+        return contracts.stream().map(ContractResponse::fromEntity).toList();
     }
 
     @Override
