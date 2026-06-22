@@ -2,6 +2,8 @@ package com.example.propertyrentalmanagement.controllers;
 
 import com.example.propertyrentalmanagement.dto.request.*;
 import com.example.propertyrentalmanagement.dto.response.*;
+import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
 import jakarta.validation.Valid;
@@ -9,9 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.example.propertyrentalmanagement.entitites.AppUser;
-import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 
 import java.util.UUID;
 
