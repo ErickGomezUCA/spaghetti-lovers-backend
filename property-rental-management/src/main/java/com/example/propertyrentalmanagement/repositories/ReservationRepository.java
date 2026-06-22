@@ -46,4 +46,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
                                     @Param("today") LocalDate today);
 
     List<Reservation> findByCheckInDateAndReservationStatus(LocalDate checkInDate, ReservationStatus status);
+
+    Long countByTenantId(UUID tenantId);
+
+    Long countByTenantIdAndReservationStatus(UUID tenantId, ReservationStatus status);
+
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.property.landlord.id = :landlordId")
+    Long countByPropertyLandlordId(@Param("landlordId") UUID landlordId);
 }

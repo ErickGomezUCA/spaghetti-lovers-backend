@@ -5,14 +5,18 @@ import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
+import com.example.propertyrentalmanagement.dto.response.UserProfileResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.enums.ReservationStatus;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.InvalidCredentials;
 import com.example.propertyrentalmanagement.exceptions.UserAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.repositories.PropertyRepository;
+import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.JwtService;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
@@ -30,6 +34,8 @@ public class AppUserServiceImpl implements AppUserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RatingService ratingService;
+    private final PropertyRepository propertyRepository;
+    private final ReservationRepository reservationRepository;
 
     @Override
     public AuthResponse createUser(CreateUserRequest userRequest) {
@@ -91,6 +97,46 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     public UserRatingsResponse getUserRating(UUID userId) {
         return ratingService.getRatingsByUser(userId);
+    }
+
+    @Override
+    public UserProfileResponse getUserProfile(String email) {
+        AppUser user = appUserRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        UserRatingsResponse ratingsData = ratingService.getRatingsByUser(user.getId());
+
+        int propertiesCount = user.getRole() == UserRole.LANDLORD
+                ? propertyRepository.countByLandlordId(user.getId()).intValue()
+                : 0;
+
+        int reservationsCount;
+        int completedReservationsCount;
+        if (user.getRole() == UserRole.TENANT) {
+            reservationsCount = reservationRepository.countByTenantId(user.getId()).intValue();
+            completedReservationsCount = reservationRepository
+                    .countByTenantIdAndReservationStatus(user.getId(), ReservationStatus.COMPLETED).intValue();
+        } else if (user.getRole() == UserRole.LANDLORD) {
+            reservationsCount = reservationRepository.countByPropertyLandlordId(user.getId()).intValue();
+            completedReservationsCount = 0;
+        } else {
+            reservationsCount = 0;
+            completedReservationsCount = 0;
+        }
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getRole(),
+                propertiesCount,
+                reservationsCount,
+                completedReservationsCount,
+                ratingsData.totalRatings(),
+                ratingsData.averageScore(),
+                ratingsData.ratings()
+        );
     }
 
     @Override

@@ -18,4 +18,6 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
 
     @Query("SELECT AVG(r.score) FROM Rating r WHERE r.reviewed.id = :reviewedId")
     Optional<Double> findAverageScoreByReviewedId(@Param("reviewedId") UUID reviewedId);
+
+    Long countByReviewedId(UUID reviewedId);
 }

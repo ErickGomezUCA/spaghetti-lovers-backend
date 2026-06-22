@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, UUID> {
     Page<Property> findAllByLandlordId(UUID landlordId, Pageable pageable);
+
+    Long countByLandlordId(UUID landlordId);
 }

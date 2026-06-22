@@ -102,6 +102,17 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
+    @GetMapping("/me/profile")
+    ResponseEntity<GenericResponse> getAuthenticatedUserProfile(Authentication authentication) {
+        UserProfileResponse profile = appUserService.getUserProfile(authentication.getName());
+
+        return GenericResponse.builder()
+                .message("User profile found")
+                .data(profile)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
     @PreAuthorize("@authorizationService.isAdmin()")
     @GetMapping
     ResponseEntity<GenericResponse> getUserByEmail(@RequestParam(name = "email") String email) {
