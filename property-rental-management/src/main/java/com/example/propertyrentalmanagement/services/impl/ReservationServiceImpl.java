@@ -501,8 +501,10 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public Page<ReservationResponse> getMyReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status) {
-        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
 
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
         UUID currentUserId = authenticatedUserProvider.getCurrentUser().getId();
 
         Page<Reservation> reservationsPage;
@@ -518,9 +520,11 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public Page<ReservationResponse> getLandlordReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
-        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
-        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
 
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
         String normalizedSearchTerm = (searchTerm == null || searchTerm.isBlank()) ? null : searchTerm.trim();
 
         Page<Reservation> reservationsPage = reservationRepository.findLandlordReservationsWithFilters(
