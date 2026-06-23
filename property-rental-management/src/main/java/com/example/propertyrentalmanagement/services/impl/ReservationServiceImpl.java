@@ -12,7 +12,10 @@ import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.ReservationService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -494,6 +497,50 @@ public class ReservationServiceImpl implements ReservationService {
         notificationRepository.save(notification);
 
         return ReservationExtensionResponse.fromEntity(reservation, extensionPayment);
+    }
+
+    @Override
+    public Page<ReservationResponse> getMyReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status) {
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+
+        UUID currentUserId = authenticatedUserProvider.getCurrentUser().getId();
+
+        Page<Reservation> reservationsPage;
+
+        if (status == null) {
+            reservationsPage = reservationRepository.findByTenantId(currentUserId, pageable);
+        } else {
+            reservationsPage = reservationRepository.findByTenantIdAndReservationStatus(currentUserId, status, pageable);
+        }
+
+        return reservationsPage.map(ReservationResponse::fromEntity);
+    }
+
+    @Override
+    public Page<ReservationResponse> getLandlordReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
+
+        Page<Reservation> reservationsPage = reservationRepository.findLandlordReservationsWithFilters(
+                currentLandlordId,
+                status,
+                searchTerm,
+                pageable
+        );
+
+        return reservationsPage.map(ReservationResponse::fromEntity);
+    }
+
+    @Override
+    public LandlordReservationSummaryResponse getLandlordReservationSummary() {
+        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
+
+        long reservedCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.RESERVED);
+        long activeCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.ACTIVE);
+        long completedCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.COMPLETED);
+        long cancelledCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.CANCELLED);
+
+        return new LandlordReservationSummaryResponse(reservedCount, activeCount, completedCount, cancelledCount);
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
