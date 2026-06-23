@@ -55,8 +55,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     Page<Reservation> findByTenantIdAndReservationStatus(UUID tenantId, ReservationStatus status, Pageable pageable);
 
-    long countByPropertyLandlordIdAndReservationStatus(UUID landlordId, ReservationStatus status);
+    interface StatusCount {
+        ReservationStatus getStatus();
+        Long getCount();
+    }
 
+    @Query("SELECT r.reservationStatus AS status, COUNT(r) AS count " +
+            "FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
+            "GROUP BY r.reservationStatus")
+    List<StatusCount> countReservationsGroupedByStatus(@Param("landlordId") UUID landlordId);
+    
     @Query("SELECT r FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
             "AND (:status IS NULL OR r.reservationStatus = :status) " +
             "AND (:searchTerm IS NULL OR :searchTerm = '' OR " +

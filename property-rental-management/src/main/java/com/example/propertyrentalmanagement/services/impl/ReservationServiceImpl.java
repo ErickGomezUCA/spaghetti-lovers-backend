@@ -541,12 +541,20 @@ public class ReservationServiceImpl implements ReservationService {
     public LandlordReservationSummaryResponse getLandlordReservationSummary() {
         UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
 
-        long reservedCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.RESERVED);
-        long activeCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.ACTIVE);
-        long completedCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.COMPLETED);
-        long cancelledCount = reservationRepository.countByPropertyLandlordIdAndReservationStatus(currentLandlordId, ReservationStatus.CANCELLED);
+        List<ReservationRepository.StatusCount> statusCounts = reservationRepository.countReservationsGroupedByStatus(currentLandlordId);
 
-        return new LandlordReservationSummaryResponse(reservedCount, activeCount, completedCount, cancelledCount);
+        long reserved = 0, active = 0, completed = 0, cancelled = 0;
+
+        for (ReservationRepository.StatusCount sc : statusCounts) {
+            switch (sc.getStatus()) {
+                case RESERVED -> reserved = sc.getCount();
+                case ACTIVE -> active = sc.getCount();
+                case COMPLETED -> completed = sc.getCount();
+                case CANCELLED -> cancelled = sc.getCount();
+            }
+        }
+
+        return new LandlordReservationSummaryResponse(reserved, active, completed, cancelled);
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
