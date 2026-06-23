@@ -24,6 +24,8 @@ public record ReservationDetailResponse(
         String accessCode,
         PropertySummaryResponse property,
         UUID tenantId,
+        String tenantName,
+        String tenantEmail,
         List<PaymentResponse> payments,
         ContractResponse contract
 ) {
@@ -49,6 +51,8 @@ public record ReservationDetailResponse(
                 accessCode,
                 property,
                 reservation.getTenant().getId(),
+                reservation.getTenant().getName(),
+                reservation.getTenant().getEmail(),
                 payments,
                 contract
         );
