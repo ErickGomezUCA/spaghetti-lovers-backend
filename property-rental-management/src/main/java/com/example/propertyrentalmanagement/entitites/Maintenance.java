@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.enums.Urgency;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +46,12 @@ public class Maintenance {
 
     @Column(name = "resolution_notes", columnDefinition = "TEXT")
     private String resolutionNotes;
+
+    @Column(name = "scheduled_start")
+    private LocalDateTime scheduledStart;
+
+    @Column(name = "scheduled_end")
+    private LocalDateTime scheduledEnd;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "maintenance_status", nullable = false)

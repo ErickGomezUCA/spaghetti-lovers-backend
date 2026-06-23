@@ -78,6 +78,7 @@ public class MaintenanceController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isLandlord()")
     @PatchMapping("/{id}/resolve")
     ResponseEntity<GenericResponse> resolveMaintenance(
             @PathVariable UUID id,

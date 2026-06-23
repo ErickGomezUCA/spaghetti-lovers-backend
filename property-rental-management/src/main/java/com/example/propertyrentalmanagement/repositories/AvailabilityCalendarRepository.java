@@ -1,6 +1,7 @@
 package com.example.propertyrentalmanagement.repositories;
 
 import com.example.propertyrentalmanagement.entitites.AvailabilityCalendar;
+import com.example.propertyrentalmanagement.entitites.Maintenance;
 import com.example.propertyrentalmanagement.entitites.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,8 @@ public interface AvailabilityCalendarRepository extends JpaRepository<Availabili
     );
   
     List<AvailabilityCalendar> findByReservation(Reservation reservation);
+
+    void deleteByMaintenance(Maintenance maintenance);
 
     @Query("SELECT ac FROM AvailabilityCalendar ac WHERE ac.property.id = :propertyId " +
             "AND ac.timestampStart < :newCheckOutTime " +

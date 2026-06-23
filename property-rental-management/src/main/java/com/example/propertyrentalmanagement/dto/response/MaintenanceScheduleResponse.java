@@ -15,7 +15,7 @@ public record MaintenanceScheduleResponse(
         MaintenanceScheduleFrequency frequency,
         int interval,
         String lastCompletedAt, // format: YYYY-MM-DD
-        String nextScheduleDate, // format:  YYYY-MM-DD
+        String nextScheduledDate, // format: YYYY-MM-DD
         MaintenanceScheduleStatus status
 ) {
     public static MaintenanceScheduleResponse fromEntity(MaintenanceSchedule maintenanceSchedule) {

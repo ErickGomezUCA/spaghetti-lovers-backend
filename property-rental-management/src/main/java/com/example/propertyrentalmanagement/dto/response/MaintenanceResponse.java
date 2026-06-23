@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.entitites.MaintenancePhoto;
 import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
 import com.example.propertyrentalmanagement.enums.Urgency;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ public record MaintenanceResponse(
         String description,
         Urgency urgency,
         String resolutionNotes,
+        LocalDateTime scheduledStart,
+        LocalDateTime scheduledEnd,
         MaintenanceStatus maintenanceStatus,
         List<String> photoUrls
 ) {
@@ -30,6 +33,8 @@ public record MaintenanceResponse(
                 maintenance.getDescription(),
                 maintenance.getUrgency(),
                 maintenance.getResolutionNotes(),
+                maintenance.getScheduledStart(),
+                maintenance.getScheduledEnd(),
                 maintenance.getMaintenanceStatus(),
                 maintenance.getPhotos() != null ? maintenance.getPhotos().stream().map(MaintenancePhoto::getUrl).toList() : List.of()
         );

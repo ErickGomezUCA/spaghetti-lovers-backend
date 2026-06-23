@@ -3,19 +3,25 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceScheduleRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceScheduleResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.entitites.AvailabilityCalendar;
 import com.example.propertyrentalmanagement.entitites.Maintenance;
 import com.example.propertyrentalmanagement.entitites.MaintenanceSchedule;
+import com.example.propertyrentalmanagement.entitites.Notification;
 import com.example.propertyrentalmanagement.entitites.Property;
+import com.example.propertyrentalmanagement.enums.BlockType;
 import com.example.propertyrentalmanagement.enums.MaintenanceScheduleFrequency;
 import com.example.propertyrentalmanagement.enums.MaintenanceScheduleStatus;
 import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
+import com.example.propertyrentalmanagement.enums.NotificationType;
 import com.example.propertyrentalmanagement.enums.Urgency;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceScheduleNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
 import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
 import com.example.propertyrentalmanagement.repositories.MaintenanceScheduleRepository;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceScheduleService;
@@ -26,6 +32,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -35,6 +42,8 @@ public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleServic
     private final AppUserRepository appUserRepository;
     private final PropertyRepository propertyRepository;
     private final MaintenanceRepository maintenanceRepository;
+    private final AvailabilityCalendarRepository availabilityCalendarRepository;
+    private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
 
     @Override
@@ -84,9 +93,33 @@ public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleServic
                 .maintenanceStatus(MaintenanceStatus.SCHEDULED)
                 .build();
 
-        maintenanceRepository.save(maintenance);
-        // TODO: Check if can be created depending on availability calendar, on task: on task: [SPL-17] Calendario de disponibilidad sincronizado
-        // check if in that day there is a reservation
+        Maintenance savedMaintenance = maintenanceRepository.save(maintenance);
+
+        LocalDateTime blockStart = maintenanceScheduleFound.getNextScheduledDate();
+        LocalDateTime blockEnd = blockStart.plusDays(1);
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
+                maintenanceScheduleFound.getProperty().getId(), blockStart, blockEnd);
+        if (overlaps.isEmpty()) {
+            AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
+                    .property(maintenanceScheduleFound.getProperty())
+                    .timestampStart(blockStart)
+                    .timestampEnd(blockEnd)
+                    .blockType(BlockType.PREVENTIVE_MAINTENANCE)
+                    .maintenance(savedMaintenance)
+                    .blockedReason("Mantenimiento preventivo: " + maintenanceScheduleFound.getTitle())
+                    .build();
+            availabilityCalendarRepository.save(calendarBlock);
+        }
+
+        Notification scheduleNotification = Notification.builder()
+                .user(maintenanceScheduleFound.getScheduledBy())
+                .type(NotificationType.MAINTENANCE)
+                .title("Mantenimiento preventivo activado")
+                .message("El mantenimiento preventivo \"" + maintenanceScheduleFound.getTitle() + "\" ha sido iniciado.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        notificationRepository.save(scheduleNotification);
 
         maintenanceScheduleFound.setLastCompletedAt(LocalDateTime.now());
         maintenanceScheduleFound.setNextScheduledDate(calculateNextScheduledDate(
