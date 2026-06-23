@@ -521,10 +521,12 @@ public class ReservationServiceImpl implements ReservationService {
         Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
         UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
 
+        String normalizedSearchTerm = (searchTerm == null || searchTerm.isBlank()) ? null : searchTerm.trim();
+
         Page<Reservation> reservationsPage = reservationRepository.findLandlordReservationsWithFilters(
                 currentLandlordId,
                 status,
-                searchTerm,
+                normalizedSearchTerm,
                 pageable
         );
 
