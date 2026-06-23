@@ -19,9 +19,9 @@ public interface PropertyRepository extends JpaRepository<Property, UUID> {
     Long countByLandlordId(UUID landlordId);
 
     @Query("SELECT p FROM Property p WHERE " +
-           "(:term IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) " +
-           "OR LOWER(p.city) LIKE LOWER(CONCAT('%', :term, '%')) " +
-           "OR LOWER(p.address) LIKE LOWER(CONCAT('%', :term, '%'))) " +
+           "(CAST(:term AS string) IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', CAST(:term AS string), '%')) " +
+           "OR LOWER(p.city) LIKE LOWER(CONCAT('%', CAST(:term AS string), '%')) " +
+           "OR LOWER(p.address) LIKE LOWER(CONCAT('%', CAST(:term AS string), '%'))) " +
            "AND (:propertyType IS NULL OR p.propertyType = :propertyType) " +
            "AND (:minGuests IS NULL OR p.maxGuests >= :minGuests) " +
            "AND (:status IS NULL OR p.propertyStatus = :status)")
