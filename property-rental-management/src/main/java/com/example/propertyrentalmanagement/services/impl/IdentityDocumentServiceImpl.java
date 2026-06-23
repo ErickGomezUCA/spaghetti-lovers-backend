@@ -39,6 +39,10 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
     public IdentityDocumentResponse submitDocument(SubmitIdentityDocumentRequest request) {
         AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
+        if (currentUser.getRole() != UserRole.TENANT && currentUser.getRole() != UserRole.LANDLORD) {
+            throw new NotResourceOwnerException("Permission denied: only tenants or landlords can submit identity documents.");
+        }
+
         if (identityDocumentRepository.existsByUserAndDocumentStatus(currentUser, DocumentStatus.VERIFIED)) {
             throw new ConflictException("Your identity is already verified.");
         }
