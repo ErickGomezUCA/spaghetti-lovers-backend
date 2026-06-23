@@ -37,22 +37,25 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
     @Override
     @Transactional
     public IdentityDocumentResponse submitDocument(SubmitIdentityDocumentRequest request) {
-        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+        UUID currentUserId = authenticatedUserProvider.getCurrentUser().getId();
 
-        if (currentUser.getRole() != UserRole.TENANT && currentUser.getRole() != UserRole.LANDLORD) {
+        AppUser lockedUser = userRepository.findByIdWithLock(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (lockedUser.getRole() != UserRole.TENANT && lockedUser.getRole() != UserRole.LANDLORD) {
             throw new NotResourceOwnerException("Permission denied: only tenants or landlords can submit identity documents.");
         }
 
-        if (identityDocumentRepository.existsByUserAndDocumentStatus(currentUser, DocumentStatus.VERIFIED)) {
+        if (identityDocumentRepository.existsByUserAndDocumentStatus(lockedUser, DocumentStatus.VERIFIED)) {
             throw new ConflictException("Your identity is already verified.");
         }
 
-        if (identityDocumentRepository.existsByUserAndDocumentStatus(currentUser, DocumentStatus.PENDING)) {
+        if (identityDocumentRepository.existsByUserAndDocumentStatus(lockedUser, DocumentStatus.PENDING)) {
             throw new ConflictException("You already have an identity verification pending.");
         }
 
         IdentityDocument newDocument = IdentityDocument.builder()
-                .user(currentUser)
+                .user(lockedUser)
                 .documentUrl(request.documentUrl())
                 .documentStatus(DocumentStatus.PENDING)
                 .build();
@@ -67,7 +70,7 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
                             .user(admin)
                             .type(NotificationType.INFO)
                             .title("New Identity Verification Pending")
-                            .message("User " + currentUser.getName() + " - " + currentUser.getEmail() + " has submitted a new identity document for verification.")
+                            .message("User " + lockedUser.getName() + " - " + lockedUser.getEmail() + " has submitted a new identity document for verification.")
                             .isRead(false)
                             .createdAt(LocalDateTime.now())
                             .build()
