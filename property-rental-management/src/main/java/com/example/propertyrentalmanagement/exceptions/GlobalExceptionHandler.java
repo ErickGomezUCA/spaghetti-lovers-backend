@@ -284,4 +284,30 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT)
                 .build().buildResponse();
     }
+
+    @ExceptionHandler(IdentityDocumentNotFoundException.class)
+    public ResponseEntity<GenericResponse> identityDocumentNotFoundException(IdentityDocumentNotFoundException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.NOT_FOUND)
+                .build().buildResponse();
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<GenericResponse> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                "Malformed JSON request. Please check your data types and values."
+        );
+
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.BAD_REQUEST)
+                .build().buildResponse();
+    }
 }
