@@ -60,9 +60,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     @Query("SELECT r FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
             "AND (:status IS NULL OR r.reservationStatus = :status) " +
             "AND (:searchTerm IS NULL OR :searchTerm = '' OR " +
-            "LOWER(r.property.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(r.tenant.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(r.tenant.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.property.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.tenant.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(r.tenant.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Reservation> findLandlordReservationsWithFilters(
             @Param("landlordId") UUID landlordId,
