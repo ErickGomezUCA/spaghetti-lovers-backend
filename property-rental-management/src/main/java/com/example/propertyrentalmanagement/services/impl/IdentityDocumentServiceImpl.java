@@ -86,8 +86,8 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
     public IdentityDocumentResponse reviewDocument(UUID documentId, ReviewIdentityDocumentRequest request) {
         AppUser currentAdmin = authenticatedUserProvider.getCurrentUser();
 
-        if (currentAdmin.getRole() != com.example.propertyrentalmanagement.enums.UserRole.ADMIN) {
-            throw new NotResourceOwnerException("Unauthorized: Only administrators can review identity documents.");
+        if (currentAdmin.getRole() != UserRole.ADMIN) {
+            throw new NotResourceOwnerException("Permission denied: Only administrators can review identity documents.");
         }
 
         IdentityDocument document = identityDocumentRepository.findById(documentId)
