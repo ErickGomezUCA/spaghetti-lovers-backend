@@ -2,6 +2,8 @@ package com.example.propertyrentalmanagement.repositories;
 
 import com.example.propertyrentalmanagement.entitites.Reservation;
 import com.example.propertyrentalmanagement.enums.ReservationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,11 +15,6 @@ import java.util.UUID;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, UUID> {
-
-    List<Reservation> findByTenantIdAndReservationStatusIn(
-            UUID tenantId,
-            List<ReservationStatus> statuses
-    );
 
     @Query("SELECT r FROM Reservation r WHERE r.property.id = :propertyId " +
             "AND r.reservationStatus != :cancelledStatus " +
@@ -53,4 +50,31 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.property.landlord.id = :landlordId")
     Long countByPropertyLandlordId(@Param("landlordId") UUID landlordId);
+
+    Page<Reservation> findByTenantId(UUID tenantId, Pageable pageable);
+
+    Page<Reservation> findByTenantIdAndReservationStatus(UUID tenantId, ReservationStatus status, Pageable pageable);
+
+    interface StatusCount {
+        ReservationStatus getStatus();
+        Long getCount();
+    }
+
+    @Query("SELECT r.reservationStatus AS status, COUNT(r) AS count " +
+            "FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
+            "GROUP BY r.reservationStatus")
+    List<StatusCount> countReservationsGroupedByStatus(@Param("landlordId") UUID landlordId);
+    
+    @Query("SELECT r FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
+            "AND (:status IS NULL OR r.reservationStatus = :status) " +
+            "AND (:searchTerm IS NULL OR :searchTerm = '' OR " +
+            "LOWER(r.property.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.tenant.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.tenant.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Reservation> findLandlordReservationsWithFilters(
+            @Param("landlordId") UUID landlordId,
+            @Param("status") ReservationStatus status,
+            @Param("searchTerm") String searchTerm,
+            Pageable pageable
+    );
 }

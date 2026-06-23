@@ -3,10 +3,12 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.request.CreateReservationRequest;
 import com.example.propertyrentalmanagement.dto.request.ExtendReservationRequest;
 import com.example.propertyrentalmanagement.dto.response.*;
+import com.example.propertyrentalmanagement.enums.ReservationStatus;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -91,5 +93,63 @@ public class ReservationController {
                 .data(response)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isTenant()")
+    @GetMapping("/my-reservations")
+    public ResponseEntity<GenericResponse> getMyReservations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) ReservationStatus status
+    ) {
+
+        Page<ReservationResponse> reservations = reservationService.getMyReservations(page, pageSize, sortBy, sortOrder, status);
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("My reservations retrieved successfully")
+                        .data(reservations.getContent())
+                        .pagination(PaginationMeta.fromPage(reservations))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord()")
+    @GetMapping("/landlord")
+    public ResponseEntity<GenericResponse> getLandlordReservations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String search
+    ) {
+        Page<ReservationResponse> reservations = reservationService.getLandlordReservations(page, pageSize, sortBy, sortOrder, status, search);
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("Landlord reservations retrieved successfully")
+                        .data(reservations.getContent())
+                        .pagination(PaginationMeta.fromPage(reservations))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord()")
+    @GetMapping("/landlord/summary")
+    public ResponseEntity<GenericResponse> getLandlordReservationSummary() {
+        LandlordReservationSummaryResponse summary = reservationService.getLandlordReservationSummary();
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("Landlord reservation summary retrieved successfully")
+                        .data(summary)
+                        .status(HttpStatus.OK)
+                        .build()
+        );
     }
 }

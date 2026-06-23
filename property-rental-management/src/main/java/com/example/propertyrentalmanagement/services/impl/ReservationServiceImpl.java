@@ -12,7 +12,10 @@ import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ContractService;
 import com.example.propertyrentalmanagement.services.ReservationService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -494,6 +497,64 @@ public class ReservationServiceImpl implements ReservationService {
         notificationRepository.save(notification);
 
         return ReservationExtensionResponse.fromEntity(reservation, extensionPayment);
+    }
+
+    @Override
+    public Page<ReservationResponse> getMyReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
+
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        UUID currentUserId = authenticatedUserProvider.getCurrentUser().getId();
+
+        Page<Reservation> reservationsPage;
+
+        if (status == null) {
+            reservationsPage = reservationRepository.findByTenantId(currentUserId, pageable);
+        } else {
+            reservationsPage = reservationRepository.findByTenantIdAndReservationStatus(currentUserId, status, pageable);
+        }
+
+        return reservationsPage.map(ReservationResponse::fromEntity);
+    }
+
+    @Override
+    public Page<ReservationResponse> getLandlordReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
+
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
+        String normalizedSearchTerm = (searchTerm == null || searchTerm.isBlank()) ? null : searchTerm.trim();
+
+        Page<Reservation> reservationsPage = reservationRepository.findLandlordReservationsWithFilters(
+                currentLandlordId,
+                status,
+                normalizedSearchTerm,
+                pageable
+        );
+
+        return reservationsPage.map(ReservationResponse::fromEntity);
+    }
+
+    @Override
+    public LandlordReservationSummaryResponse getLandlordReservationSummary() {
+        UUID currentLandlordId = authenticatedUserProvider.getCurrentUser().getId();
+
+        List<ReservationRepository.StatusCount> statusCounts = reservationRepository.countReservationsGroupedByStatus(currentLandlordId);
+
+        long reserved = 0, active = 0, completed = 0, cancelled = 0;
+
+        for (ReservationRepository.StatusCount sc : statusCounts) {
+            switch (sc.getStatus()) {
+                case RESERVED -> reserved = sc.getCount();
+                case ACTIVE -> active = sc.getCount();
+                case COMPLETED -> completed = sc.getCount();
+                case CANCELLED -> cancelled = sc.getCount();
+            }
+        }
+
+        return new LandlordReservationSummaryResponse(reserved, active, completed, cancelled);
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
