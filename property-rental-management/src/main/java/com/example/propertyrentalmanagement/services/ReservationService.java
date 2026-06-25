@@ -24,4 +24,6 @@ public interface ReservationService {
     Page<ReservationResponse> getLandlordReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm);
 
     LandlordReservationSummaryResponse getLandlordReservationSummary();
+
+    ReservationCancellationPreviewResponse previewCancellation(UUID reservationId);
 }

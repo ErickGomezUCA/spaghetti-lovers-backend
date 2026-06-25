@@ -207,12 +207,11 @@ public class ReservationServiceImpl implements ReservationService {
         validateCancellationPermission(currentUser, reservation);
         validateReservationCanBeCancelled(reservation);
 
-        LocalDate today = LocalDate.now();
-        long daysUntilCheckIn = ChronoUnit.DAYS.between(today, reservation.getCheckInDate());
+        ReservationCancellationPreviewResponse preview = buildCancellationPreview(reservation);
 
-        BigDecimal cancellationPenalty = calculateCancellationPenalty(reservation, daysUntilCheckIn);
-        BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
-        BigDecimal cleaningFeeRefundAmount = reservation.getCleaningFee();
+        BigDecimal cancellationPenalty = preview.cancellationPenalty();
+        BigDecimal reservationRefundAmount = preview.reservationRefundAmount();
+        BigDecimal cleaningFeeRefundAmount = preview.cleaningFeeRefundAmount();
         BigDecimal guaranteeDepositRefundAmount = refundGuaranteeDeposit(reservation);
 
         refundReservationPayment(reservation, reservationRefundAmount.add(cleaningFeeRefundAmount));
@@ -627,5 +626,52 @@ public class ReservationServiceImpl implements ReservationService {
                 .build();
 
         notificationRepository.save(notification);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReservationCancellationPreviewResponse previewCancellation(UUID reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        validateCancellationPermission(currentUser, reservation);
+        validateReservationCanBeCancelled(reservation);
+
+        return buildCancellationPreview(reservation);
+    }
+
+    private ReservationCancellationPreviewResponse buildCancellationPreview(Reservation reservation) {
+        LocalDate today = LocalDate.now();
+        long daysUntilCheckIn = ChronoUnit.DAYS.between(today, reservation.getCheckInDate());
+
+        BigDecimal cancellationPenalty = calculateCancellationPenalty(reservation, daysUntilCheckIn);
+        BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
+        BigDecimal cleaningFeeRefundAmount = reservation.getCleaningFee();
+        BigDecimal guaranteeDepositRefundAmount = getGuaranteeDepositAmount(reservation);
+
+        BigDecimal totalRefundAmount = reservationRefundAmount
+                .add(cleaningFeeRefundAmount)
+                .add(guaranteeDepositRefundAmount);
+
+        return new ReservationCancellationPreviewResponse(
+                reservation.getId(),
+                reservation.getReservationStatus(),
+                reservation.getCheckInDate(),
+                reservation.getCheckOutDate(),
+                daysUntilCheckIn,
+                cancellationPenalty,
+                reservationRefundAmount,
+                cleaningFeeRefundAmount,
+                guaranteeDepositRefundAmount,
+                totalRefundAmount
+        );
+    }
+
+    private BigDecimal getGuaranteeDepositAmount(Reservation reservation) {
+        return paymentRepository.findByReservationAndPaymentType(reservation, PaymentType.GUARANTEE_DEPOSIT)
+                .map(Payment::getAmount)
+                .orElse(BigDecimal.ZERO);
     }
 }
