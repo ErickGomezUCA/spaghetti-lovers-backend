@@ -15,6 +15,9 @@ import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.example.propertyrentalmanagement.dto.response.AccessCodeDetailResponse;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.Comparator;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -111,5 +114,38 @@ public class AccessCodeServiceImpl implements AccessCodeService {
         }
 
         return code.toString();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AccessCodeDetailResponse> getTenantAccessCodes() {
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        if (currentUser.getRole() != UserRole.TENANT) {
+            throw new NotResourceOwnerException("Only tenants can access tenant access codes");
+        }
+
+        return accessCodeRepository
+                .findByReservation_Tenant_IdOrderByValidFromDesc(currentUser.getId())
+                .stream()
+                .filter(accessCode -> accessCode.getCodeType() == CodeType.ACCESS_CODE)
+                .map(AccessCodeDetailResponse::fromEntity)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AccessCodeDetailResponse> getLandlordAccessCodes() {
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        if (currentUser.getRole() != UserRole.LANDLORD) {
+            throw new NotResourceOwnerException("Only landlords can access landlord access codes");
+        }
+
+        return accessCodeRepository
+                .findByReservation_Property_Landlord_IdOrderByValidFromDesc(currentUser.getId())
+                .stream()
+                .map(AccessCodeDetailResponse::fromEntity)
+                .toList();
     }
 }
