@@ -19,4 +19,6 @@ public interface AccessCodeRepository extends JpaRepository<AccessCode, UUID> {
     );
 
     List<AccessCode> findByReservation(Reservation reservation);
+    List<AccessCode> findByReservation_Tenant_IdOrderByValidFromDesc(UUID tenantId);
+    List<AccessCode> findByReservation_Property_Landlord_IdOrderByValidFromDesc(UUID landlordId);
 }
