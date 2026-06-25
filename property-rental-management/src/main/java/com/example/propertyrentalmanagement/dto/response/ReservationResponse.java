@@ -5,39 +5,32 @@ import com.example.propertyrentalmanagement.enums.ReservationStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ReservationResponse(
         UUID id,
-        UUID propertyId,
-        UUID tenantId,
+        String propertyName,
+        String tenantName,
+        String tenantEmail,
         LocalDate checkInDate,
         LocalDate checkOutDate,
-        int guestsCount,
         int totalNights,
-        BigDecimal baseTotal,
-        BigDecimal cleaningFee,
-        BigDecimal longStayDiscount,
+        int guestsCount,
         BigDecimal totalPrice,
-        ReservationStatus reservationStatus,
-        LocalDateTime createdAt
+        ReservationStatus reservationStatus
 ) {
     public static ReservationResponse fromEntity(Reservation reservation) {
         return new ReservationResponse(
                 reservation.getId(),
-                reservation.getProperty().getId(),
-                reservation.getTenant().getId(),
+                reservation.getProperty().getTitle(),
+                reservation.getTenant().getName(),
+                reservation.getTenant().getEmail(),
                 reservation.getCheckInDate(),
                 reservation.getCheckOutDate(),
-                reservation.getGuestsCount(),
                 reservation.getTotalNights(),
-                reservation.getBaseTotal(),
-                reservation.getCleaningFee(),
-                reservation.getLongStayDiscount(),
+                reservation.getGuestsCount(),
                 reservation.getTotalPrice(),
-                reservation.getReservationStatus(),
-                reservation.getCreatedAt()
+                reservation.getReservationStatus()
         );
     }
 }
