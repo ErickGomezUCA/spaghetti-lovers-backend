@@ -23,7 +23,7 @@ WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy only the jar from builder stage
-COPY --from=builder /app/target/proyecto5-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /app/target/property-rental-management-0.0.1-SNAPSHOT.jar app.jar
 
 # Give ownership to non-root user
 RUN chown appuser:appgroup app.jar
