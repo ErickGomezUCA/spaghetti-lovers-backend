@@ -207,7 +207,7 @@ public class ReservationServiceImpl implements ReservationService {
         validateCancellationPermission(currentUser, reservation);
         validateReservationCanBeCancelled(reservation);
 
-        ReservationCancellationPreviewResponse preview = buildCancellationPreview(reservation);
+        ReservationCancellationPreviewResponse preview = buildCancellationPreview(reservation, currentUser);
 
         BigDecimal cancellationPenalty = preview.cancellationPenalty();
         BigDecimal reservationRefundAmount = preview.reservationRefundAmount();
@@ -275,16 +275,28 @@ public class ReservationServiceImpl implements ReservationService {
         }
     }
 
-    private BigDecimal calculateCancellationPenalty(Reservation reservation, long daysUntilCheckIn) {
+    private BigDecimal calculateCancellationPenalty(
+            Reservation reservation,
+            long daysUntilCheckIn,
+            AppUser currentUser
+    ) {
+        boolean isTenantOwner = reservation.getTenant().getId().equals(currentUser.getId());
+
+        if (!isTenantOwner) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
         if (daysUntilCheckIn >= 7) {
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
         if (daysUntilCheckIn >= 3) {
-            return reservation.getBaseTotal().multiply(BigDecimal.valueOf(0.50));
+            return reservation.getBaseTotal()
+                    .multiply(new BigDecimal("0.50"))
+                    .setScale(2, RoundingMode.HALF_UP);
         }
 
-        return reservation.getBaseTotal();
+        return reservation.getBaseTotal().setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateReservationRefundAmount(Reservation reservation, BigDecimal cancellationPenalty) {
@@ -639,14 +651,22 @@ public class ReservationServiceImpl implements ReservationService {
         validateCancellationPermission(currentUser, reservation);
         validateReservationCanBeCancelled(reservation);
 
-        return buildCancellationPreview(reservation);
+        return buildCancellationPreview(reservation, currentUser);
     }
 
-    private ReservationCancellationPreviewResponse buildCancellationPreview(Reservation reservation) {
+    private ReservationCancellationPreviewResponse buildCancellationPreview(
+            Reservation reservation,
+            AppUser currentUser
+    ) {
         LocalDate today = LocalDate.now();
         long daysUntilCheckIn = ChronoUnit.DAYS.between(today, reservation.getCheckInDate());
 
-        BigDecimal cancellationPenalty = calculateCancellationPenalty(reservation, daysUntilCheckIn);
+        BigDecimal cancellationPenalty = calculateCancellationPenalty(
+                reservation,
+                daysUntilCheckIn,
+                currentUser
+        );
+
         BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
         BigDecimal cleaningFeeRefundAmount = reservation.getCleaningFee();
         BigDecimal guaranteeDepositRefundAmount = getGuaranteeDepositAmount(reservation);
