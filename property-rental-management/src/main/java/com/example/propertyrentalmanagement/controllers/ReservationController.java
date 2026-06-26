@@ -152,4 +152,16 @@ public class ReservationController {
                         .build()
         );
     }
+
+    @GetMapping("/{reservationId}/cancellation-preview")
+    public ResponseEntity<GenericResponse> previewCancellation(@PathVariable UUID reservationId) {
+        ReservationCancellationPreviewResponse preview = reservationService.previewCancellation(reservationId);
+
+        return GenericResponse.builder()
+                .message("Reservation cancellation preview retrieved successfully")
+                .data(preview)
+                .status(HttpStatus.OK)
+                .build()
+                .buildResponse();
+    }
 }
