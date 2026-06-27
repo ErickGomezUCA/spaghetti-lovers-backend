@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface ReportService {
     PropertyReportResponse getPropertyReport(UUID propertyId, LocalDate startDate, LocalDate endDate);
-    List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate);
+    List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate, UUID landlordId);
 }

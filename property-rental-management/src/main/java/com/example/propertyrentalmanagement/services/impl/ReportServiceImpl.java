@@ -126,19 +126,27 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate) {
+        return getAllPropertiesReport(startDate, endDate, null);
+    }
 
+    @Override
+    public List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate, UUID landlordId) {
         if (!startDate.isBefore(endDate)) {
             throw new IllegalArgumentException("startDate must be before endDate");
         }
 
         var currentUser = authenticatedUserProvider.getCurrentUser();
-
         List<Property> properties;
 
-        // Admin ve todas las propiedades, Landlord solo las suyas
         if (currentUser.getRole() == UserRole.ADMIN) {
-            properties = propertyRepository.findAll();
+            // Admin: si especifica landlordId filtra por ese landlord, si no ve todas
+            if (landlordId != null) {
+                properties = propertyRepository.findAllByLandlordId(landlordId);
+            } else {
+                properties = propertyRepository.findAll();
+            }
         } else {
+            // Landlord: siempre solo ve las suyas, ignorar landlordId
             properties = propertyRepository.findAllByLandlordId(currentUser.getId());
         }
 

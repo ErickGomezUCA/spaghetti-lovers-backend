@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.request.*;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
@@ -131,6 +132,17 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/landlords")
+    ResponseEntity<GenericResponse> getLandlords() {
+        List<UserResponse> landlords = appUserService.getUsersByRole(UserRole.LANDLORD);
+        return GenericResponse.builder()
+                .message("Landlords found")
+                .data(landlords)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
     @PreAuthorize("@authorizationService.isAdminOrCurrentUser(#userId)")
     @GetMapping("/{userId}")
     ResponseEntity<GenericResponse> getUserByUUID(@PathVariable UUID userId) {
@@ -152,4 +164,5 @@ public class AppUserController {
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
+
 }

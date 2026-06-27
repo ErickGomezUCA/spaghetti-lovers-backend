@@ -173,9 +173,10 @@ public class PropertyController {
     @GetMapping("/report")
     ResponseEntity<GenericResponse> getAllPropertiesReport(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) UUID landlordId
     ) {
-        List<PropertyReportResponse> reports = reportService.getAllPropertiesReport(startDate, endDate);
+        List<PropertyReportResponse> reports = reportService.getAllPropertiesReport(startDate, endDate, landlordId);
         return GenericResponse.builder()
                 .message("Properties report generated successfully")
                 .data(reports)
