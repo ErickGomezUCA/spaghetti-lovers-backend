@@ -44,4 +44,7 @@ public class Payment {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "stripe_payment_intent_id")
+    private String stripePaymentIntentId;
 }

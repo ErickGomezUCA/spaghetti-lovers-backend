@@ -298,6 +298,18 @@ public class GlobalExceptionHandler {
                 .build().buildResponse();
     }
 
+    @ExceptionHandler(StripePaymentException.class)
+    public ResponseEntity<GenericResponse> stripePaymentException(StripePaymentException ex) {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(
+                java.time.LocalDateTime.now(),
+                ex.getMessage()
+        );
+        return GenericResponse.builder()
+                .data(errorResponse)
+                .status(HttpStatus.PAYMENT_REQUIRED)
+                .build().buildResponse();
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<GenericResponse> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         CustomErrorResponse errorResponse = new CustomErrorResponse(

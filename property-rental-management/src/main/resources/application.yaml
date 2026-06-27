@@ -34,3 +34,6 @@ cloudinary:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+stripe:
+  secret-key: "${STRIPE_SECRET_KEY}"
+  webhook-secret: "${STRIPE_WEBHOOK_SECRET}"

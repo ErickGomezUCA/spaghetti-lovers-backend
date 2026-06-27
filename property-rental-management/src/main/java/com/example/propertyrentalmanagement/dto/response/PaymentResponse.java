@@ -16,7 +16,8 @@ public record PaymentResponse(
         PaymentMethod paymentMethod,
         BigDecimal refundAmount,
         LocalDateTime refundedAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String stripePaymentIntentId
 ) {
     public static PaymentResponse fromEntity(Payment payment) {
         return new PaymentResponse(
@@ -27,7 +28,8 @@ public record PaymentResponse(
                 payment.getPaymentMethod(),
                 payment.getRefundAmount(),
                 payment.getRefundedAt(),
-                payment.getCreatedAt()
+                payment.getCreatedAt(),
+                payment.getStripePaymentIntentId()
         );
     }
 }
