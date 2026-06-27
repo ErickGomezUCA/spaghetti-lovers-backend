@@ -8,8 +8,9 @@ import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserProfileResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
+import com.example.propertyrentalmanagement.enums.UserRole;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface AppUserService {
@@ -26,7 +27,7 @@ public interface AppUserService {
 
     UserProfileResponse getUserProfile(String email);
 
-    List<UserProfileResponse> getAllUsersForAdmin();
+    Page<UserProfileResponse> getAllUsersForAdmin(int page, int pageSize, String sortBy, String sortOrder, UserRole role, String search);
 
     UserProfileResponse getUserProfileById(UUID userId);
 

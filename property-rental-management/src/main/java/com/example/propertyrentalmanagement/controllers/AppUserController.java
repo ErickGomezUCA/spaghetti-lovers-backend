@@ -3,11 +3,13 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.request.*;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -121,12 +123,24 @@ public class AppUserController {
 
     @PreAuthorize("@authorizationService.isAdmin()")
     @GetMapping("/all")
-    ResponseEntity<GenericResponse> getAllUsers() {
-        return GenericResponse.builder()
-                .message("Users found")
-                .data(appUserService.getAllUsersForAdmin())
-                .status(HttpStatus.OK)
-                .build().buildResponse();
+    ResponseEntity<GenericResponse> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) String search
+    ) {
+        Page<UserProfileResponse> users = appUserService.getAllUsersForAdmin(page, pageSize, sortBy, sortOrder, role, search);
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("Users found")
+                        .data(users.getContent())
+                        .pagination(PaginationMeta.fromPage(users))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
     }
 
     @PreAuthorize("@authorizationService.isAdminOrCurrentUser(#userId)")

@@ -21,11 +21,13 @@ import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.JwtService;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -109,10 +111,10 @@ public class AppUserServiceImpl implements AppUserService {
     }
 
     @Override
-    public List<UserProfileResponse> getAllUsersForAdmin() {
-        return appUserRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(this::buildUserProfileResponse)
-                .toList();
+    public Page<UserProfileResponse> getAllUsersForAdmin(int page, int pageSize, String sortBy, String sortOrder, UserRole role, String search) {
+        Pageable pageable = PaginationUtils.getPageRequest(page, pageSize, sortBy, sortOrder);
+        return appUserRepository.findWithFilters(role, search, pageable)
+                .map(this::buildUserProfileResponse);
     }
 
     @Override
