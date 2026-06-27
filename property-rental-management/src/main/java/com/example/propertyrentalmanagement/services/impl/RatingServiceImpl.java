@@ -102,4 +102,15 @@ public class RatingServiceImpl implements RatingService {
                 ratingResponses
         );
     }
+
+    @Override
+    public List<RatingResponse> getRatingsByReviewer(UUID reviewerId) {
+        appUserRepository.findById(reviewerId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return ratingRepository.findByReviewerId(reviewerId)
+                .stream()
+                .map(RatingResponse::fromEntity)
+                .toList();
+    }
 }
