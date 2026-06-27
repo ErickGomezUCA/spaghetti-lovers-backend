@@ -23,6 +23,12 @@ import com.example.propertyrentalmanagement.services.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.propertyrentalmanagement.entitites.Notification;
+import com.example.propertyrentalmanagement.enums.NotificationType;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 import java.util.UUID;
 
@@ -36,6 +42,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final RatingService ratingService;
     private final PropertyRepository propertyRepository;
     private final ReservationRepository reservationRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public AuthResponse createUser(CreateUserRequest userRequest) {
@@ -54,6 +61,30 @@ public class AppUserServiceImpl implements AppUserService {
                 .build();
 
         AppUser createdUser = appUserRepository.save(user);
+        if (createdUser.getRole() != UserRole.ADMIN) {
+            List<AppUser> admins = appUserRepository.findByRole(UserRole.ADMIN);
+
+            if (!admins.isEmpty()) {
+                List<Notification> notifications = admins.stream()
+                        .map(admin -> Notification.builder()
+                                .user(admin)
+                                .type(NotificationType.INFO)
+                                .title("Nuevo usuario registrado")
+                                .message("Se registró un nuevo usuario: "
+                                        + createdUser.getName()
+                                        + " - "
+                                        + createdUser.getEmail()
+                                        + " con rol "
+                                        + createdUser.getRole()
+                                        + ".")
+                                .isRead(false)
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .toList();
+
+                notificationRepository.saveAll(notifications);
+            }
+        }
         String token = jwtService.generateToken(createdUser);
 
         return AuthResponse.builder()
