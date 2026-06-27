@@ -18,5 +18,6 @@ public record UserProfileResponse(
         Integer completedReservationsCount,
         Integer ratingsCount,
         Double averageScore,
-        List<RatingResponse> ratings
+        List<RatingResponse> ratings,
+        String verificationStatus
 ) {}

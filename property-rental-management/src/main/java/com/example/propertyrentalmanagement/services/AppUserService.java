@@ -9,6 +9,7 @@ import com.example.propertyrentalmanagement.dto.response.UserProfileResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface AppUserService {
@@ -24,6 +25,10 @@ public interface AppUserService {
     UserRatingsResponse getUserRating(UUID userId);
 
     UserProfileResponse getUserProfile(String email);
+
+    List<UserProfileResponse> getAllUsersForAdmin();
+
+    UserProfileResponse getUserProfileById(UUID userId);
 
     UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest);
 

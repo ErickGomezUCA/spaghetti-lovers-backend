@@ -120,13 +120,11 @@ public class AppUserController {
     }
 
     @PreAuthorize("@authorizationService.isAdmin()")
-    @GetMapping
-    ResponseEntity<GenericResponse> getUserByEmail(@RequestParam(name = "email") String email) {
-        UserResponse userFound = appUserService.getUserByEmail(email);
-
+    @GetMapping("/all")
+    ResponseEntity<GenericResponse> getAllUsers() {
         return GenericResponse.builder()
-                .message("User found")
-                .data(userFound)
+                .message("Users found")
+                .data(appUserService.getAllUsersForAdmin())
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
@@ -139,6 +137,18 @@ public class AppUserController {
         return GenericResponse.builder()
                 .message("User found")
                 .data(userFound)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/{userId}/profile")
+    ResponseEntity<GenericResponse> getUserProfileById(@PathVariable UUID userId) {
+        UserProfileResponse profile = appUserService.getUserProfileById(userId);
+
+        return GenericResponse.builder()
+                .message("User profile found")
+                .data(profile)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

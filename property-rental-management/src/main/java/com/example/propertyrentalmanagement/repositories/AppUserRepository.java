@@ -21,5 +21,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM AppUser u WHERE u.id = :id")
     Optional<AppUser> findByIdWithLock(@Param("id") UUID id);
+
+    List<AppUser> findAllByOrderByCreatedAtDesc();
 }
 

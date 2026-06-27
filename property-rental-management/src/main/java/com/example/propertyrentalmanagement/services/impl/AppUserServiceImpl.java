@@ -15,6 +15,7 @@ import com.example.propertyrentalmanagement.exceptions.InvalidCredentials;
 import com.example.propertyrentalmanagement.exceptions.UserAlreadyExistsException;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.repositories.IdentityDocumentRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.JwtService;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -36,6 +38,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final RatingService ratingService;
     private final PropertyRepository propertyRepository;
     private final ReservationRepository reservationRepository;
+    private final IdentityDocumentRepository identityDocumentRepository;
 
     @Override
     public AuthResponse createUser(CreateUserRequest userRequest) {
@@ -102,7 +105,24 @@ public class AppUserServiceImpl implements AppUserService {
     public UserProfileResponse getUserProfile(String email) {
         AppUser user = appUserRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return buildUserProfileResponse(user);
+    }
 
+    @Override
+    public List<UserProfileResponse> getAllUsersForAdmin() {
+        return appUserRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::buildUserProfileResponse)
+                .toList();
+    }
+
+    @Override
+    public UserProfileResponse getUserProfileById(UUID userId) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return buildUserProfileResponse(user);
+    }
+
+    private UserProfileResponse buildUserProfileResponse(AppUser user) {
         UserRatingsResponse ratingsData = ratingService.getRatingsByUser(user.getId());
 
         int propertiesCount = user.getRole() == UserRole.LANDLORD
@@ -123,6 +143,10 @@ public class AppUserServiceImpl implements AppUserService {
             completedReservationsCount = 0;
         }
 
+        String verificationStatus = identityDocumentRepository.findByUser_Id(user.getId())
+                .map(doc -> doc.getDocumentStatus().name())
+                .orElse(null);
+
         return new UserProfileResponse(
                 user.getId(),
                 user.getName(),
@@ -135,7 +159,8 @@ public class AppUserServiceImpl implements AppUserService {
                 completedReservationsCount,
                 ratingsData.totalRatings(),
                 ratingsData.averageScore(),
-                ratingsData.ratings()
+                ratingsData.ratings(),
+                verificationStatus
         );
     }
 
