@@ -387,11 +387,14 @@ public class ReservationServiceImpl implements ReservationService {
                 markFinesAsResolved(openDamageFines);
             } else {
                 additionalFinePaymentAmount = totalDamageFineAmount.subtract(guaranteeDepositAmount);
+
                 createAdditionalFinePayment(
                         reservation,
                         guaranteeDepositPayment,
                         additionalFinePaymentAmount
                 );
+
+                markFinesAsResolved(openDamageFines);
             }
         }
 
@@ -624,14 +627,22 @@ public class ReservationServiceImpl implements ReservationService {
             BigDecimal retainedAmount
     ) {
         String message = retainedAmount.compareTo(BigDecimal.ZERO) > 0
-                ? "The reservation was completed. A portion of the guarantee deposit was refunded and an amount was retained for damages."
-                : "The reservation was completed. The guarantee deposit was fully refunded.";
+                ? "Tu reserva en "
+                + reservation.getProperty().getTitle()
+                + " fue completada. Se retuvo $"
+                + retainedAmount.setScale(2, RoundingMode.HALF_UP)
+                + " del depósito de garantía por daños y se reembolsó $"
+                + refundAmount.setScale(2, RoundingMode.HALF_UP)
+                + "."
+                : "Tu reserva en "
+                + reservation.getProperty().getTitle()
+                + " fue completada. El depósito de garantía fue reembolsado completamente.";
 
         Notification notification = Notification.builder()
                 .user(reservation.getTenant())
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reservation Completed")
+                .title("Reserva completada")
                 .message(message)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
