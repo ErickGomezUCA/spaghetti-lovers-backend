@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -138,6 +139,16 @@ public class AppUserController {
         return GenericResponse.builder()
                 .message("User found")
                 .data(userFound)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @GetMapping("/{userId}/ratings-given")
+    ResponseEntity<GenericResponse> getRatingsGivenByUser(@PathVariable UUID userId) {
+        List<RatingResponse> ratingsGiven = ratingService.getRatingsByReviewer(userId);
+        return GenericResponse.builder()
+                .message("Ratings given by user found")
+                .data(ratingsGiven)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

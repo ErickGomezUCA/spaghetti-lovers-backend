@@ -13,6 +13,7 @@ import java.util.UUID;
 @Repository
 public interface RatingRepository extends JpaRepository<Rating, UUID> {
     List<Rating> findByReviewedId(UUID reviewedId);
+    List<Rating> findByReviewerId(UUID reviewerId);
 
     boolean existsByReservationIdAndReviewerId(UUID reservation, UUID reviewerId);
 
