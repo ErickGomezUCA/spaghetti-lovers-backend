@@ -387,11 +387,14 @@ public class ReservationServiceImpl implements ReservationService {
                 markFinesAsResolved(openDamageFines);
             } else {
                 additionalFinePaymentAmount = totalDamageFineAmount.subtract(guaranteeDepositAmount);
+
                 createAdditionalFinePayment(
                         reservation,
                         guaranteeDepositPayment,
                         additionalFinePaymentAmount
                 );
+
+                markFinesAsResolved(openDamageFines);
             }
         }
 
