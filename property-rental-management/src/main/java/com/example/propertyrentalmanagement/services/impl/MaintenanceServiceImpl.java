@@ -12,11 +12,7 @@ import com.example.propertyrentalmanagement.enums.NotificationType;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
-import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenancePhotoRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
-import com.example.propertyrentalmanagement.repositories.NotificationRepository;
-import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
 import com.example.propertyrentalmanagement.utils.PaginationUtils;
@@ -41,6 +37,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private final AvailabilityCalendarRepository availabilityCalendarRepository;
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
+    private final AppUserRepository appUserRepository;
 
     private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
@@ -96,6 +93,29 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                 .createdAt(LocalDateTime.now())
                 .build();
         notificationRepository.save(createNotification);
+
+        if (maintenanceRequest.urgency().name().equals("CRITICAL")) {
+            List<AppUser> admins = appUserRepository.findByRole(UserRole.ADMIN);
+
+            if (!admins.isEmpty()) {
+                List<Notification> adminNotifications = admins.stream()
+                        .map(admin -> Notification.builder()
+                                .user(admin)
+                                .type(NotificationType.MAINTENANCE)
+                                .title("Mantenimiento crítico reportado")
+                                .message("Se reportó un mantenimiento crítico en "
+                                        + property.getTitle()
+                                        + ": \""
+                                        + maintenanceRequest.title()
+                                        + "\".")
+                                .isRead(false)
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .toList();
+
+                notificationRepository.saveAll(adminNotifications);
+            }
+        }
 
         return MaintenanceResponse.fromEntity(createdMaintenance);
     }
