@@ -123,4 +123,27 @@ public class ReportServiceImpl implements ReportService {
                 )
         );
     }
+
+    @Override
+    public List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate) {
+
+        if (!startDate.isBefore(endDate)) {
+            throw new IllegalArgumentException("startDate must be before endDate");
+        }
+
+        var currentUser = authenticatedUserProvider.getCurrentUser();
+
+        List<Property> properties;
+
+        // Admin ve todas las propiedades, Landlord solo las suyas
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            properties = propertyRepository.findAll();
+        } else {
+            properties = propertyRepository.findAllByLandlordId(currentUser.getId());
+        }
+
+        return properties.stream()
+                .map(property -> getPropertyReport(property.getId(), startDate, endDate))
+                .toList();
+    }
 }
