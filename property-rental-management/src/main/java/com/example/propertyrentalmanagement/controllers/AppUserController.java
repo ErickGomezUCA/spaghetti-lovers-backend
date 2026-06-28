@@ -3,17 +3,20 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.request.*;
 import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AppUserService;
 import com.example.propertyrentalmanagement.services.RatingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -73,6 +76,19 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/admin/monthly-summary")
+    ResponseEntity<GenericResponse> getAdminMonthlySummary(
+            @RequestParam(defaultValue = "0") long activePropertiesCount
+    ) {
+        AdminMonthlySummary summary = appUserService.getAdminMonthlySummary(activePropertiesCount);
+        return GenericResponse.builder()
+                .message("Admin monthly summary found")
+                .data(summary)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
     @GetMapping("/{userId}/rating")
     ResponseEntity<GenericResponse> getUserRating(@PathVariable UUID userId) {
         UserRatingsResponse ratingsFound = appUserService.getUserRating(userId);
@@ -119,13 +135,34 @@ public class AppUserController {
     }
 
     @PreAuthorize("@authorizationService.isAdmin()")
-    @GetMapping
-    ResponseEntity<GenericResponse> getUserByEmail(@RequestParam(name = "email") String email) {
-        UserResponse userFound = appUserService.getUserByEmail(email);
+    @GetMapping("/all")
+    ResponseEntity<GenericResponse> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) String search
+    ) {
+        Page<UserProfileResponse> users = appUserService.getAllUsersForAdmin(page, pageSize, sortBy, sortOrder, role, search);
 
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("Users found")
+                        .data(users.getContent())
+                        .pagination(PaginationMeta.fromPage(users))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/landlords")
+    ResponseEntity<GenericResponse> getLandlords() {
+        List<UserResponse> landlords = appUserService.getUsersByRole(UserRole.LANDLORD);
         return GenericResponse.builder()
-                .message("User found")
-                .data(userFound)
+                .message("Landlords found")
+                .data(landlords)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
@@ -141,4 +178,27 @@ public class AppUserController {
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
+
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/{userId}/profile")
+    ResponseEntity<GenericResponse> getUserProfileById(@PathVariable UUID userId) {
+        UserProfileResponse profile = appUserService.getUserProfileById(userId);
+
+        return GenericResponse.builder()
+                .message("User profile found")
+                .data(profile)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @GetMapping("/{userId}/ratings-given")
+    ResponseEntity<GenericResponse> getRatingsGivenByUser(@PathVariable UUID userId) {
+        List<RatingResponse> ratingsGiven = ratingService.getRatingsByReviewer(userId);
+        return GenericResponse.builder()
+                .message("Ratings given by user found")
+                .data(ratingsGiven)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
 }

@@ -48,6 +48,7 @@ public class ReservationController {
     }
 
     @GetMapping("/{reservationId}/access-code")
+    @PreAuthorize("@authorizationService.isTenant() or @authorizationService.isLandlord()")
     ResponseEntity<GenericResponse> getAccessCodeByReservationId(@PathVariable UUID reservationId) {
         AccessCodeResponse accessCode = accessCodeService.getActiveAccessCodeByReservationId(reservationId);
 
@@ -59,6 +60,7 @@ public class ReservationController {
     }
 
     @DeleteMapping("/{reservationId}")
+    @PreAuthorize("@authorizationService.isTenant() or @authorizationService.isLandlord() or @authorizationService.isAdmin()")
     ResponseEntity<GenericResponse> cancelReservation(@PathVariable UUID reservationId) {
         ReservationCancellationResponse cancellationResponse = reservationService.cancelReservation(reservationId);
 
@@ -69,6 +71,7 @@ public class ReservationController {
                 .build().buildResponse();
     }
     @PostMapping("/{reservationId}/complete")
+    @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isAdmin()")
     ResponseEntity<GenericResponse> completeReservation(@PathVariable UUID reservationId) {
         ReservationCompletionResponse completionResponse = reservationService.completeReservation(reservationId);
 
@@ -153,7 +156,30 @@ public class ReservationController {
         );
     }
 
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/admin/all")
+    public ResponseEntity<GenericResponse> getAllSystemReservations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String search
+    ) {
+        Page<ReservationResponse> reservations = reservationService.getAllSystemReservations(page, pageSize, sortBy, sortOrder, status, search);
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("All system reservations retrieved successfully")
+                        .data(reservations.getContent())
+                        .pagination(PaginationMeta.fromPage(reservations))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
+
     @GetMapping("/{reservationId}/cancellation-preview")
+    @PreAuthorize("@authorizationService.isTenant() or @authorizationService.isLandlord() or @authorizationService.isAdmin()")
     public ResponseEntity<GenericResponse> previewCancellation(@PathVariable UUID reservationId) {
         ReservationCancellationPreviewResponse preview = reservationService.previewCancellation(reservationId);
 

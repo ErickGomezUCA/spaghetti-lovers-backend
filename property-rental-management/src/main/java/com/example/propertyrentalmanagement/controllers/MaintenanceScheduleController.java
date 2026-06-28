@@ -39,7 +39,7 @@ public class MaintenanceScheduleController {
         maintenanceScheduleService.startMaintenanceSchedule(id);
         return GenericResponse.builder()
                 .message("Maintenance schedule started successfully")
-                .status(HttpStatus.OK) // TODO: Include maintenance resource location here
+                .status(HttpStatus.OK)
                 .build().buildResponse();
     }
 

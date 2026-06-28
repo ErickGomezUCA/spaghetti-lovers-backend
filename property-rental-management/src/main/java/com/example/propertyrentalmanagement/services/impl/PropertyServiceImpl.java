@@ -3,18 +3,28 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
+import com.example.propertyrentalmanagement.dto.response.LandlordCalendarResponse;
+import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
 import com.example.propertyrentalmanagement.entitites.Property;
 import com.example.propertyrentalmanagement.entitites.PropertyPhoto;
+import com.example.propertyrentalmanagement.entitites.Reservation;
+import com.example.propertyrentalmanagement.enums.PaymentType;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
+import com.example.propertyrentalmanagement.enums.ReservationStatus;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
+import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
+import com.example.propertyrentalmanagement.repositories.MaintenanceScheduleRepository;
+import com.example.propertyrentalmanagement.repositories.PaymentRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
+import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.CloudinaryService;
 import com.example.propertyrentalmanagement.services.PropertyService;
@@ -25,7 +35,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -37,6 +50,11 @@ public class PropertyServiceImpl implements PropertyService {
     private final PropertyRepository propertyRepository;
     private final AppUserRepository appUserRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
+    private final ReservationRepository reservationRepository;
+    private final PaymentRepository paymentRepository;
+    private final AvailabilityCalendarRepository availabilityCalendarRepository;
+    private final MaintenanceRepository maintenanceRepository;
+    private final MaintenanceScheduleRepository maintenanceScheduleRepository;
     private final AuthenticatedUserProvider authProvider;
     private final CloudinaryService cloudinaryService;
 
@@ -169,6 +187,64 @@ public class PropertyServiceImpl implements PropertyService {
         }
 
         propertyRepository.delete(property);
+    }
+
+    @Override
+    public LandlordDashboardStats getLandlordDashboardStats() {
+        AppUser landlord = authProvider.getCurrentUser();
+        List<Property> properties = propertyRepository.findAllByLandlordId(landlord.getId(), Pageable.unpaged()).getContent();
+
+        if (properties.isEmpty()) {
+            return new LandlordDashboardStats(BigDecimal.ZERO, 0.0);
+        }
+
+        YearMonth currentMonth = YearMonth.now();
+        LocalDate startDate = currentMonth.atDay(1);
+        LocalDate endDate = currentMonth.atEndOfMonth();
+        int daysInMonth = currentMonth.lengthOfMonth();
+
+        List<UUID> propertyIds = properties.stream().map(Property::getId).toList();
+        List<Reservation> reservations = reservationRepository.findByPropertyIdsAndStatusNotAndDateRange(
+                propertyIds, ReservationStatus.CANCELLED, startDate, endDate);
+
+        BigDecimal income = reservations.isEmpty()
+                ? BigDecimal.ZERO
+                : paymentRepository.sumAmountByReservationIdsAndPaymentTypes(
+                        reservations.stream().map(Reservation::getId).toList(),
+                        List.of(PaymentType.RESERVATION, PaymentType.EXTENSION));
+
+        int totalNights = reservations.stream().mapToInt(Reservation::getTotalNights).sum();
+        double occupation = Math.round(((double) totalNights / (properties.size() * daysInMonth)) * 100 * 10.0) / 10.0;
+
+        return new LandlordDashboardStats(income, occupation);
+    }
+
+    @Override
+    public LandlordCalendarResponse getLandlordCalendar(LocalDate startDate, LocalDate endDate) {
+        AppUser landlord = authProvider.getCurrentUser();
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+
+        List<LandlordCalendarResponse.CalendarReservation> reservations =
+                availabilityCalendarRepository.findByLandlordIdAndDateRange(landlord.getId(), start, end)
+                        .stream()
+                        .filter(e -> e.getBlockType() == com.example.propertyrentalmanagement.enums.BlockType.RESERVATION)
+                        .map(LandlordCalendarResponse.CalendarReservation::fromEntity)
+                        .toList();
+
+        List<LandlordCalendarResponse.CalendarMaintenance> maintenances =
+                maintenanceRepository.findByLandlordIdAndScheduledDateRange(landlord.getId(), start, end)
+                        .stream()
+                        .map(LandlordCalendarResponse.CalendarMaintenance::fromEntity)
+                        .toList();
+
+        List<LandlordCalendarResponse.CalendarMaintenanceSchedule> schedules =
+                maintenanceScheduleRepository.findByLandlordIdAndNextScheduledDateBetween(landlord.getId(), start, end)
+                        .stream()
+                        .map(LandlordCalendarResponse.CalendarMaintenanceSchedule::fromEntity)
+                        .toList();
+
+        return new LandlordCalendarResponse(reservations, maintenances, schedules);
     }
 
     //    Private methods
