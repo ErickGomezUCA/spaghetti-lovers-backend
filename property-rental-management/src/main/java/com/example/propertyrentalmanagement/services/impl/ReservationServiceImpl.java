@@ -689,6 +689,21 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    public Page<ReservationResponse> getAllSystemReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
+
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        String normalizedSearchTerm = (searchTerm == null || searchTerm.isBlank()) ? null : searchTerm.trim();
+
+        Page<Reservation> reservationsPage = reservationRepository.findAllSystemReservationsWithFilters(
+                status,
+                normalizedSearchTerm,
+                pageable
+        );
+
+        return reservationsPage.map(ReservationResponse::fromEntity);
+      
     @Transactional(readOnly = true)
     public ReservationCancellationPreviewResponse previewCancellation(UUID reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
