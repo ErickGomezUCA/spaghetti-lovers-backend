@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import com.example.propertyrentalmanagement.enums.NotificationType;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
@@ -40,6 +42,7 @@ public class ContractServiceImpl implements ContractService {
     private final SignatureService signatureService;
     private final TemplateEngine templateEngine;
     private final AuthenticatedUserProvider authProvider;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public ContractResponse createContract(CreateContractRequest contractRequest) {
@@ -127,6 +130,25 @@ public class ContractServiceImpl implements ContractService {
         }
 
         Contract signedContract = contractRepository.save(contractToSign);
+
+        if (authUser.getRole() == UserRole.TENANT) {
+            Notification notification = Notification.builder()
+                    .user(property.getLandlord())
+                    .reservation(reservation)
+                    .type(NotificationType.INFO)
+                    .title("Contrato firmado")
+                    .message("El contrato de la reserva en "
+                            + property.getTitle()
+                            + " ha sido firmado por el inquilino "
+                            + authUser.getName()
+                            + ".")
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            notificationRepository.save(notification);
+        }
+
         return ContractResponse.fromEntity(signedContract);
     }
 
