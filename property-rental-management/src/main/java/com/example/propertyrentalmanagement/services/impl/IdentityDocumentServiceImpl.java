@@ -69,8 +69,12 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
                     .map(admin -> Notification.builder()
                             .user(admin)
                             .type(NotificationType.INFO)
-                            .title("New Identity Verification Pending")
-                            .message("User " + lockedUser.getName() + " - " + lockedUser.getEmail() + " has submitted a new identity document for verification.")
+                            .title("Nueva verificación pendiente")
+                            .message("El usuario "
+                                    + lockedUser.getName()
+                                    + " - "
+                                    + lockedUser.getEmail()
+                                    + " subió un nuevo documento de identidad para revisión.")
                             .isRead(false)
                             .createdAt(LocalDateTime.now())
                             .build()

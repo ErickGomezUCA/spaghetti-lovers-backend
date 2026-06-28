@@ -12,4 +12,6 @@ public interface MaintenanceScheduleService {
     void startMaintenanceSchedule(UUID id);
 
     Page<MaintenanceScheduleResponse> getMaintenanceSchedulesByPropertyId(int page, int pageSize, String sortBy, String sortOrder, UUID propertyId);
+
+    void runDueSchedules();
 }

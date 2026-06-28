@@ -112,12 +112,31 @@ public class ReservationServiceImpl implements ReservationService {
         createPayment(reservation, baseTotal.add(cleaningFee).subtract(discount), PaymentType.RESERVATION, request.paymentMethod());
         createPayment(reservation, securityDeposit, PaymentType.GUARANTEE_DEPOSIT, request.paymentMethod());
 
+        Notification tenantReservationNotification = Notification.builder()
+                .user(tenant)
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Reserva confirmada")
+                .message("Tu reserva en "
+                        + property.getTitle()
+                        + " ha sido confirmada para el "
+                        + reservation.getCheckInDate()
+                        + " al "
+                        + reservation.getCheckOutDate()
+                        + ".")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(tenantReservationNotification);
+
         AvailabilityCalendar block = AvailabilityCalendar.builder()
                 .property(property)
                 .timestampStart(checkInTime)
                 .timestampEnd(checkOutTime)
                 .blockType(BlockType.RESERVATION)
                 .reservation(reservation)
+                .blockedReason(tenant.getName())
                 .build();
         availabilityCalendarRepository.save(block);
 
@@ -136,6 +155,20 @@ public class ReservationServiceImpl implements ReservationService {
         notificationRepository.save(notification);
 
         accessCodeService.generateAccessCodeForReservation(reservation);
+
+        Notification accessCodeNotification = Notification.builder()
+                .user(tenant)
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Código de acceso generado")
+                .message("Tu código de acceso para la propiedad "
+                        + property.getTitle()
+                        + " ha sido generado y estará disponible para tu reserva.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(accessCodeNotification);
 
         contractService.createContract(new CreateContractRequest(reservation.getId()));
 
@@ -207,12 +240,11 @@ public class ReservationServiceImpl implements ReservationService {
         validateCancellationPermission(currentUser, reservation);
         validateReservationCanBeCancelled(reservation);
 
-        LocalDate today = LocalDate.now();
-        long daysUntilCheckIn = ChronoUnit.DAYS.between(today, reservation.getCheckInDate());
+        ReservationCancellationPreviewResponse preview = buildCancellationPreview(reservation, currentUser);
 
-        BigDecimal cancellationPenalty = calculateCancellationPenalty(reservation, daysUntilCheckIn);
-        BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
-        BigDecimal cleaningFeeRefundAmount = reservation.getCleaningFee();
+        BigDecimal cancellationPenalty = preview.cancellationPenalty();
+        BigDecimal reservationRefundAmount = preview.reservationRefundAmount();
+        BigDecimal cleaningFeeRefundAmount = preview.cleaningFeeRefundAmount();
         BigDecimal guaranteeDepositRefundAmount = refundGuaranteeDeposit(reservation);
 
         refundReservationPayment(reservation, reservationRefundAmount.add(cleaningFeeRefundAmount));
@@ -276,16 +308,28 @@ public class ReservationServiceImpl implements ReservationService {
         }
     }
 
-    private BigDecimal calculateCancellationPenalty(Reservation reservation, long daysUntilCheckIn) {
+    private BigDecimal calculateCancellationPenalty(
+            Reservation reservation,
+            long daysUntilCheckIn,
+            AppUser currentUser
+    ) {
+        boolean isTenantOwner = reservation.getTenant().getId().equals(currentUser.getId());
+
+        if (!isTenantOwner) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
         if (daysUntilCheckIn >= 7) {
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
 
         if (daysUntilCheckIn >= 3) {
-            return reservation.getBaseTotal().multiply(BigDecimal.valueOf(0.50));
+            return reservation.getBaseTotal()
+                    .multiply(new BigDecimal("0.50"))
+                    .setScale(2, RoundingMode.HALF_UP);
         }
 
-        return reservation.getBaseTotal();
+        return reservation.getBaseTotal().setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateReservationRefundAmount(Reservation reservation, BigDecimal cancellationPenalty) {
@@ -376,11 +420,14 @@ public class ReservationServiceImpl implements ReservationService {
                 markFinesAsResolved(openDamageFines);
             } else {
                 additionalFinePaymentAmount = totalDamageFineAmount.subtract(guaranteeDepositAmount);
+
                 createAdditionalFinePayment(
                         reservation,
                         guaranteeDepositPayment,
                         additionalFinePaymentAmount
                 );
+
+                markFinesAsResolved(openDamageFines);
             }
         }
 
@@ -579,11 +626,13 @@ public class ReservationServiceImpl implements ReservationService {
             );
         }
     }
+
     private BigDecimal calculateTotalFineAmount(List<Fine> fines) {
         return fines.stream()
                 .map(Fine::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
     private void markFinesAsResolved(List<Fine> fines) {
         LocalDateTime resolvedAt = LocalDateTime.now();
 
@@ -591,6 +640,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         fineRepository.saveAll(fines);
     }
+
     private void createAdditionalFinePayment(
             Reservation reservation,
             Payment guaranteeDepositPayment,
@@ -607,20 +657,29 @@ public class ReservationServiceImpl implements ReservationService {
 
         paymentRepository.save(additionalFinePayment);
     }
+
     private void createCompletionNotification(
             Reservation reservation,
             BigDecimal refundAmount,
             BigDecimal retainedAmount
     ) {
         String message = retainedAmount.compareTo(BigDecimal.ZERO) > 0
-                ? "The reservation was completed. A portion of the guarantee deposit was refunded and an amount was retained for damages."
-                : "The reservation was completed. The guarantee deposit was fully refunded.";
+                ? "Tu reserva en "
+                  + reservation.getProperty().getTitle()
+                  + " fue completada. Se retuvo $"
+                  + retainedAmount.setScale(2, RoundingMode.HALF_UP)
+                  + " del depósito de garantía por daños y se reembolsó $"
+                  + refundAmount.setScale(2, RoundingMode.HALF_UP)
+                  + "."
+                : "Tu reserva en "
+                  + reservation.getProperty().getTitle()
+                  + " fue completada. El depósito de garantía fue reembolsado completamente.";
 
         Notification notification = Notification.builder()
                 .user(reservation.getTenant())
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reservation Completed")
+                .title("Reserva completada")
                 .message(message)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
@@ -644,5 +703,58 @@ public class ReservationServiceImpl implements ReservationService {
         );
 
         return reservationsPage.map(ReservationResponse::fromEntity);
+      
+    @Transactional(readOnly = true)
+    public ReservationCancellationPreviewResponse previewCancellation(UUID reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reservation not found"));
+
+        AppUser currentUser = authenticatedUserProvider.getCurrentUser();
+
+        validateCancellationPermission(currentUser, reservation);
+        validateReservationCanBeCancelled(reservation);
+
+        return buildCancellationPreview(reservation, currentUser);
+    }
+
+    private ReservationCancellationPreviewResponse buildCancellationPreview(
+            Reservation reservation,
+            AppUser currentUser
+    ) {
+        LocalDate today = LocalDate.now();
+        long daysUntilCheckIn = ChronoUnit.DAYS.between(today, reservation.getCheckInDate());
+
+        BigDecimal cancellationPenalty = calculateCancellationPenalty(
+                reservation,
+                daysUntilCheckIn,
+                currentUser
+        );
+
+        BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
+        BigDecimal cleaningFeeRefundAmount = reservation.getCleaningFee();
+        BigDecimal guaranteeDepositRefundAmount = getGuaranteeDepositAmount(reservation);
+
+        BigDecimal totalRefundAmount = reservationRefundAmount
+                .add(cleaningFeeRefundAmount)
+                .add(guaranteeDepositRefundAmount);
+
+        return new ReservationCancellationPreviewResponse(
+                reservation.getId(),
+                reservation.getReservationStatus(),
+                reservation.getCheckInDate(),
+                reservation.getCheckOutDate(),
+                daysUntilCheckIn,
+                cancellationPenalty,
+                reservationRefundAmount,
+                cleaningFeeRefundAmount,
+                guaranteeDepositRefundAmount,
+                totalRefundAmount
+        );
+    }
+
+    private BigDecimal getGuaranteeDepositAmount(Reservation reservation) {
+        return paymentRepository.findByReservationAndPaymentType(reservation, PaymentType.GUARANTEE_DEPOSIT)
+                .map(Payment::getAmount)
+                .orElse(BigDecimal.ZERO);
     }
 }
