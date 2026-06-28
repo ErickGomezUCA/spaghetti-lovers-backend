@@ -69,6 +69,21 @@ public class ContractServiceImpl implements ContractService {
                 .build();
 
         Contract createdContract = contractRepository.save(contract);
+        Notification notification = Notification.builder()
+                .user(reservationFound.getTenant())
+                .reservation(reservationFound)
+                .type(NotificationType.INFO)
+                .title("Contrato pendiente de firma")
+                .message("Tienes un contrato pendiente de firma para tu reserva en "
+                        + reservationFound.getProperty().getTitle()
+                        + ". Firma antes de "
+                        + contract.getExpiresAtTimestamp()
+                        + ".")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(notification);
         return ContractResponse.fromEntity(createdContract);
     }
 
