@@ -24,6 +24,14 @@ public interface AvailabilityCalendarRepository extends JpaRepository<Availabili
             @Param("endDate") LocalDateTime endDate
     );
   
+    @Query("SELECT a FROM AvailabilityCalendar a WHERE a.property.landlord.id = :landlordId " +
+            "AND a.timestampStart < :endDate AND a.timestampEnd > :startDate")
+    List<AvailabilityCalendar> findByLandlordIdAndDateRange(
+            @Param("landlordId") UUID landlordId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
     List<AvailabilityCalendar> findByReservation(Reservation reservation);
 
     void deleteByMaintenance(Maintenance maintenance);

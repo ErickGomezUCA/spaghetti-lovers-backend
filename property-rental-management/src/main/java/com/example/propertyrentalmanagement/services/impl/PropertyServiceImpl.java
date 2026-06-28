@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
+import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
 import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
@@ -17,6 +18,7 @@ import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException
 import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
+import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
 import com.example.propertyrentalmanagement.repositories.PaymentRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
@@ -48,6 +50,7 @@ public class PropertyServiceImpl implements PropertyService {
     private final PropertyPhotoRepository propertyPhotoRepository;
     private final ReservationRepository reservationRepository;
     private final PaymentRepository paymentRepository;
+    private final AvailabilityCalendarRepository availabilityCalendarRepository;
     private final AuthenticatedUserProvider authProvider;
     private final CloudinaryService cloudinaryService;
 
@@ -210,6 +213,16 @@ public class PropertyServiceImpl implements PropertyService {
         double occupation = Math.round(((double) totalNights / (properties.size() * daysInMonth)) * 100 * 10.0) / 10.0;
 
         return new LandlordDashboardStats(income, occupation);
+    }
+
+    @Override
+    public List<AvailabilityResponse.ConflictResponse> getLandlordCalendar(LocalDate startDate, LocalDate endDate) {
+        AppUser landlord = authProvider.getCurrentUser();
+        return availabilityCalendarRepository.findByLandlordIdAndDateRange(
+                landlord.getId(),
+                startDate.atStartOfDay(),
+                endDate.plusDays(1).atStartOfDay()
+        ).stream().map(AvailabilityResponse.ConflictResponse::fromEntity).toList();
     }
 
     //    Private methods

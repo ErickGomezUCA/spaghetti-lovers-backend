@@ -5,18 +5,10 @@ import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.*;
-import com.example.propertyrentalmanagement.enums.BlockType;
-import com.example.propertyrentalmanagement.enums.MaintenancePhotoType;
-import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
-import com.example.propertyrentalmanagement.enums.NotificationType;
-import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.enums.*;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
-import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenancePhotoRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
-import com.example.propertyrentalmanagement.repositories.NotificationRepository;
-import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
 import com.example.propertyrentalmanagement.utils.PaginationUtils;
@@ -35,14 +27,13 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MaintenanceServiceImpl implements MaintenanceService {
+    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private final MaintenanceRepository maintenanceRepository;
     private final MaintenancePhotoRepository maintenancePhotoRepository;
     private final ReservationRepository reservationRepository;
     private final AvailabilityCalendarRepository availabilityCalendarRepository;
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
-
-    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     @Override
     public MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest) {
@@ -59,7 +50,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         Maintenance maintenance = Maintenance.builder()
-                .property(property) // TODO: Remove property? It can be fetched from reservation either way
+                .property(property)
                 .reservation(reservationFound)
                 .reportedBy(authUser)
                 .title(maintenanceRequest.title())
