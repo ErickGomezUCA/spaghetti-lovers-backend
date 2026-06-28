@@ -3,7 +3,7 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
-import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
+import com.example.propertyrentalmanagement.dto.response.LandlordCalendarResponse;
 import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
@@ -19,6 +19,8 @@ import com.example.propertyrentalmanagement.exceptions.PropertyNotFound;
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
+import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
+import com.example.propertyrentalmanagement.repositories.MaintenanceScheduleRepository;
 import com.example.propertyrentalmanagement.repositories.PaymentRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyPhotoRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
@@ -51,6 +53,8 @@ public class PropertyServiceImpl implements PropertyService {
     private final ReservationRepository reservationRepository;
     private final PaymentRepository paymentRepository;
     private final AvailabilityCalendarRepository availabilityCalendarRepository;
+    private final MaintenanceRepository maintenanceRepository;
+    private final MaintenanceScheduleRepository maintenanceScheduleRepository;
     private final AuthenticatedUserProvider authProvider;
     private final CloudinaryService cloudinaryService;
 
@@ -216,13 +220,31 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
-    public List<AvailabilityResponse.ConflictResponse> getLandlordCalendar(LocalDate startDate, LocalDate endDate) {
+    public LandlordCalendarResponse getLandlordCalendar(LocalDate startDate, LocalDate endDate) {
         AppUser landlord = authProvider.getCurrentUser();
-        return availabilityCalendarRepository.findByLandlordIdAndDateRange(
-                landlord.getId(),
-                startDate.atStartOfDay(),
-                endDate.plusDays(1).atStartOfDay()
-        ).stream().map(AvailabilityResponse.ConflictResponse::fromEntity).toList();
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+
+        List<LandlordCalendarResponse.CalendarReservation> reservations =
+                availabilityCalendarRepository.findByLandlordIdAndDateRange(landlord.getId(), start, end)
+                        .stream()
+                        .filter(e -> e.getBlockType() == com.example.propertyrentalmanagement.enums.BlockType.RESERVATION)
+                        .map(LandlordCalendarResponse.CalendarReservation::fromEntity)
+                        .toList();
+
+        List<LandlordCalendarResponse.CalendarMaintenance> maintenances =
+                maintenanceRepository.findByLandlordIdAndScheduledDateRange(landlord.getId(), start, end)
+                        .stream()
+                        .map(LandlordCalendarResponse.CalendarMaintenance::fromEntity)
+                        .toList();
+
+        List<LandlordCalendarResponse.CalendarMaintenanceSchedule> schedules =
+                maintenanceScheduleRepository.findByLandlordIdAndNextScheduledDateBetween(landlord.getId(), start, end)
+                        .stream()
+                        .map(LandlordCalendarResponse.CalendarMaintenanceSchedule::fromEntity)
+                        .toList();
+
+        return new LandlordCalendarResponse(reservations, maintenances, schedules);
     }
 
     //    Private methods

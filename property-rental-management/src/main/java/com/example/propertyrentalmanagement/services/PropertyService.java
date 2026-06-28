@@ -3,7 +3,7 @@ package com.example.propertyrentalmanagement.services;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
-import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
+import com.example.propertyrentalmanagement.dto.response.LandlordCalendarResponse;
 import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
@@ -32,5 +32,5 @@ public interface PropertyService {
 
     LandlordDashboardStats getLandlordDashboardStats();
 
-    List<AvailabilityResponse.ConflictResponse> getLandlordCalendar(LocalDate startDate, LocalDate endDate);
+    LandlordCalendarResponse getLandlordCalendar(LocalDate startDate, LocalDate endDate);
 }

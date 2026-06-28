@@ -4,7 +4,6 @@ import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.*;
-import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse.ConflictResponse;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
 import com.example.propertyrentalmanagement.services.AvailabilityService;
@@ -20,7 +19,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -151,10 +149,10 @@ public class PropertyController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<ConflictResponse> entries = propertyService.getLandlordCalendar(startDate, endDate);
+        LandlordCalendarResponse calendar = propertyService.getLandlordCalendar(startDate, endDate);
         return GenericResponse.builder()
                 .message("Landlord calendar found")
-                .data(entries)
+                .data(calendar)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
