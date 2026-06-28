@@ -5,6 +5,7 @@ import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
+import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyReportResponse;
 import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
@@ -149,6 +150,17 @@ public class PropertyController {
         return GenericResponse.builder()
                 .message("Availability checked successfully")
                 .data(availability)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord()")
+    @GetMapping("/landlord/stats")
+    ResponseEntity<GenericResponse> getLandlordStats() {
+        LandlordDashboardStats stats = propertyService.getLandlordDashboardStats();
+        return GenericResponse.builder()
+                .message("Landlord stats found")
+                .data(stats)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

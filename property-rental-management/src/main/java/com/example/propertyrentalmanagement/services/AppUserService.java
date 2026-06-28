@@ -4,6 +4,7 @@ import com.example.propertyrentalmanagement.dto.request.ChangePasswordRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
+import com.example.propertyrentalmanagement.dto.response.AdminMonthlySummary;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserProfileResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
@@ -34,4 +35,6 @@ public interface AppUserService {
     UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest);
 
     void changePassword(UUID userId, ChangePasswordRequest changePasswordRequest);
+
+    AdminMonthlySummary getAdminMonthlySummary(long activePropertiesCount);
 }

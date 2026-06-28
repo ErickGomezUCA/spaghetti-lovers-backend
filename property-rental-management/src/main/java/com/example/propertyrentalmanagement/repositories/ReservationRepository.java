@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,6 +66,33 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             "GROUP BY r.reservationStatus")
     List<StatusCount> countReservationsGroupedByStatus(@Param("landlordId") UUID landlordId);
     
+    @Query("SELECT r FROM Reservation r WHERE r.property.id IN :propertyIds " +
+            "AND r.reservationStatus != :status " +
+            "AND r.checkInDate < :endDate AND r.checkOutDate > :startDate")
+    List<Reservation> findByPropertyIdsAndStatusNotAndDateRange(
+            @Param("propertyIds") List<UUID> propertyIds,
+            @Param("status") ReservationStatus status,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.reservationStatus != :status " +
+            "AND r.createdAt BETWEEN :start AND :end")
+    Long countNonCancelledByCreatedAtBetween(
+            @Param("status") ReservationStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+    @Query("SELECT COALESCE(SUM(r.totalNights), 0) FROM Reservation r " +
+            "WHERE r.reservationStatus != :status " +
+            "AND r.checkInDate < :endDate AND r.checkOutDate > :startDate")
+    Long sumTotalNightsNotCancelledByDateRange(
+            @Param("status") ReservationStatus status,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     @Query("SELECT r FROM Reservation r WHERE r.property.landlord.id = :landlordId " +
             "AND (:status IS NULL OR r.reservationStatus = :status) " +
             "AND (:searchTerm IS NULL OR :searchTerm = '' OR " +

@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.services;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
+import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
@@ -25,4 +26,6 @@ public interface PropertyService {
     PropertyResponse updateProperty(UUID propertyId, UpdatePropertyRequest propertyRequest);
 
     void deleteProperty(UUID propertyId);
+
+    LandlordDashboardStats getLandlordDashboardStats();
 }

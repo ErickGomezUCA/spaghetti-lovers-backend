@@ -76,6 +76,19 @@ public class AppUserController {
                 .build().buildResponse();
     }
 
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/admin/monthly-summary")
+    ResponseEntity<GenericResponse> getAdminMonthlySummary(
+            @RequestParam(defaultValue = "0") long activePropertiesCount
+    ) {
+        AdminMonthlySummary summary = appUserService.getAdminMonthlySummary(activePropertiesCount);
+        return GenericResponse.builder()
+                .message("Admin monthly summary found")
+                .data(summary)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
     @GetMapping("/{userId}/rating")
     ResponseEntity<GenericResponse> getUserRating(@PathVariable UUID userId) {
         UserRatingsResponse ratingsFound = appUserService.getUserRating(userId);

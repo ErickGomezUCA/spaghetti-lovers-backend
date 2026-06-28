@@ -4,11 +4,13 @@ import com.example.propertyrentalmanagement.dto.request.ChangePasswordRequest;
 import com.example.propertyrentalmanagement.dto.request.CreateUserRequest;
 import com.example.propertyrentalmanagement.dto.request.LoginRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdateUserRequest;
+import com.example.propertyrentalmanagement.dto.response.AdminMonthlySummary;
 import com.example.propertyrentalmanagement.dto.response.AuthResponse;
 import com.example.propertyrentalmanagement.dto.response.UserProfileResponse;
 import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.entitites.AppUser;
+import com.example.propertyrentalmanagement.enums.PaymentType;
 import com.example.propertyrentalmanagement.enums.ReservationStatus;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.InvalidCredentials;
@@ -16,6 +18,7 @@ import com.example.propertyrentalmanagement.exceptions.UserAlreadyExistsExceptio
 import com.example.propertyrentalmanagement.exceptions.UserNotFoundException;
 import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.IdentityDocumentRepository;
+import com.example.propertyrentalmanagement.repositories.PaymentRepository;
 import com.example.propertyrentalmanagement.repositories.PropertyRepository;
 import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.JwtService;
@@ -28,6 +31,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,6 +48,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final RatingService ratingService;
     private final PropertyRepository propertyRepository;
     private final ReservationRepository reservationRepository;
+    private final PaymentRepository paymentRepository;
     private final IdentityDocumentRepository identityDocumentRepository;
 
     @Override
@@ -198,5 +207,29 @@ public class AppUserServiceImpl implements AppUserService {
         appUserRepository.save(userFound);
     }
 
+    @Override
+    public AdminMonthlySummary getAdminMonthlySummary(long activePropertiesCount) {
+        YearMonth currentMonth = YearMonth.now();
+        LocalDate startDate = currentMonth.atDay(1);
+        LocalDate endDate = currentMonth.atEndOfMonth();
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+        int daysInMonth = currentMonth.lengthOfMonth();
+
+        long reservationsThisMonth = reservationRepository.countNonCancelledByCreatedAtBetween(
+                ReservationStatus.CANCELLED, startDateTime, endDateTime);
+
+        BigDecimal incomeThisMonth = paymentRepository.sumAmountByPaymentTypeInAndCreatedAtBetween(
+                List.of(PaymentType.RESERVATION, PaymentType.EXTENSION), startDateTime, endDateTime);
+
+        long totalNights = reservationRepository.sumTotalNightsNotCancelledByDateRange(
+                ReservationStatus.CANCELLED, startDate, endDate);
+
+        double averageOccupation = (activePropertiesCount > 0 && daysInMonth > 0)
+                ? Math.round(((double) totalNights / (activePropertiesCount * daysInMonth)) * 100 * 10.0) / 10.0
+                : 0.0;
+
+        return new AdminMonthlySummary(reservationsThisMonth, incomeThisMonth, averageOccupation);
+    }
 
 }
