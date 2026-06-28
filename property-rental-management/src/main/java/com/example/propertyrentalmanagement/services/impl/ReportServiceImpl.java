@@ -108,6 +108,7 @@ public class ReportServiceImpl implements ReportService {
 
         return new PropertyReportResponse(
                 propertyId,
+                property.getTitle(),
                 new PropertyReportResponse.PeriodResponse(
                         startDate.toString(),
                         endDate.toString()
@@ -122,11 +123,6 @@ public class ReportServiceImpl implements ReportService {
                         totalIngresos
                 )
         );
-    }
-
-    @Override
-    public List<PropertyReportResponse> getAllPropertiesReport(LocalDate startDate, LocalDate endDate) {
-        return getAllPropertiesReport(startDate, endDate, null);
     }
 
     @Override
