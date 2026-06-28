@@ -1,4 +1,4 @@
-# property-rental-management
+# RentFlow: Gestión de alquileres de propiedades
 
 Backend de la plataforma de gestion de alquileres de propiedades. API REST construida con Spring Boot 4, Java 21 y PostgreSQL.
 
