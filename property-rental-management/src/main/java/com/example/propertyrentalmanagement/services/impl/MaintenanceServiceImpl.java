@@ -62,6 +62,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         Maintenance createdMaintenance = maintenanceRepository.save(maintenance);
 
+        List<String> savedPhotoUrls = List.of();
         if (maintenanceRequest.photoUrls() != null && !maintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = maintenanceRequest.photoUrls().stream()
                     .filter(Objects::nonNull)
@@ -76,6 +77,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             if (!photos.isEmpty()) {
                 maintenancePhotoRepository.saveAll(photos);
+                savedPhotoUrls = photos.stream().map(MaintenancePhoto::getUrl).toList();
             }
         }
 
@@ -89,7 +91,21 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                 .build();
         notificationRepository.save(createNotification);
 
-        return MaintenanceResponse.fromEntity(createdMaintenance);
+        // Using this pattern to include photosUrl on response
+        return new MaintenanceResponse(
+                createdMaintenance.getId(),
+                property.getId(),
+                reservationFound.getId(),
+                authUser.getId(),
+                createdMaintenance.getTitle(),
+                createdMaintenance.getDescription(),
+                createdMaintenance.getUrgency(),
+                createdMaintenance.getResolutionNotes(),
+                createdMaintenance.getScheduledStart(),
+                createdMaintenance.getScheduledEnd(),
+                createdMaintenance.getMaintenanceStatus(),
+                savedPhotoUrls
+        );
     }
 
     @Override
