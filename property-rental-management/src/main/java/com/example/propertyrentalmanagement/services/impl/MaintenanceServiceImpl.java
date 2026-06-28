@@ -87,11 +87,28 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         Notification createNotification = Notification.builder()
                 .user(property.getLandlord())
                 .type(NotificationType.MAINTENANCE)
-                .title("Nueva solicitud de mantenimiento")
-                .message("Nueva solicitud: \"" + maintenanceRequest.title() + "\" con urgencia " + maintenanceRequest.urgency() + ".")
+                .title(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Solicitud de mantenimiento crítico"
+                                : "Nueva solicitud de mantenimiento"
+                )
+                .message(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Se ha reportado un problema urgente en "
+                                + property.getTitle()
+                                + ": "
+                                + maintenanceRequest.title()
+                                + "."
+                                : "Nueva solicitud: \""
+                                + maintenanceRequest.title()
+                                + "\" con urgencia "
+                                + maintenanceRequest.urgency()
+                                + "."
+                )
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
+
         notificationRepository.save(createNotification);
 
         if (maintenanceRequest.urgency().name().equals("CRITICAL")) {
