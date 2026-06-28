@@ -139,3 +139,109 @@ Gestiona la generacion y firma digital de contratos de arrendamiento.
 - Consulta de contratos propios (cada rol ve solo los contratos que le corresponden).
 - Al extender una reserva, el contrato existente se regenera, se restablece a `PENDING_SIGNATURES` y se borran las firmas previas.
 
+---
+
+### Reservas
+
+<!-- TODO -->
+
+---
+
+### Notificaciones
+
+<!-- TODO -->
+
+---
+
+### Documentos de identidad
+
+<!-- TODO -->
+
+---
+
+### Multas
+
+<!-- TODO -->
+
+---
+
+### Codigos de acceso
+
+<!-- TODO -->
+
+---
+
+### Subida de archivos
+
+<!-- TODO -->
+
+---
+
+## Variables de entorno
+
+- `POSTGRES_URL`: URL de conexion JDBC a la base de datos PostgreSQL.
+- `POSTGRES_USER`: Usuario de la base de datos.
+- `POSTGRES_PASSWORD`: Contrasena de la base de datos.
+- `JWT_SECRET`: Clave secreta para firmar y validar tokens JWT (minimo 32 caracteres).
+- `JWT_EXPIRATION_MS`: Tiempo de vida del token en milisegundos. Por defecto: `86400000` (24 h).
+- `CLOUDINARY_CLOUD_NAME`: Nombre del cloud en Cloudinary.
+- `CLOUDINARY_API_KEY`: API key de Cloudinary.
+- `CLOUDINARY_API_SECRET`: API secret de Cloudinary.
+- `CORS_ALLOWED_ORIGINS`: Origenes permitidos para CORS, separados por coma. Por defecto: `http://localhost:3000`.
+- `PORT`: Puerto en el que arranca el servidor. Por defecto: `8080`.
+
+---
+
+## Ejecucion local
+
+**1. Configurar variables de entorno**
+
+Cargar las variables definidas en la seccion anterior en el entorno de ejecucion o en el archivo de configuracion del IDE.
+
+**2. Levantar servicios externos**
+
+- Crear una base de datos en Neon y copiar la cadena de conexion. O bien usar una base de datos local con PostgreSQL.
+- Crear una cuenta en Cloudinary y obtener las credenciales del dashboard.
+- Levantar el frontend (Next.js) y configurar `CORS_ALLOWED_ORIGINS` con su URL. Ya sea desde deploy a producción, o levantamiento local (en puerto 3000)
+
+**3. Ejecutar con Maven**
+
+Desde el directorio `property-rental-management/`:
+
+```bash
+./mvnw spring-boot:run
+```
+
+La API quedara disponible en `http://localhost:8080`.
+
+---
+
+## Dockerizacion
+
+El proyecto incluye un `Dockerfile`: la primera etapa compila el JAR con Maven y la segunda genera una imagen para mantener la aplicación en ejecución.
+
+Construir la imagen:
+
+```bash
+docker build -t property-rental-management:latest .
+```
+
+Ejecutar el contenedor cargando un archivo `.env`:
+
+```bash
+docker run -p 8080:8080 --env-file .env property-rental-management:latest
+```
+
+También, pasar las variables de forma directamente:
+
+```bash
+docker run -p 8080:8080 \
+  -e POSTGRES_URL=<url> \
+  -e POSTGRES_USER=<usuario> \
+  -e POSTGRES_PASSWORD=<contrasena> \
+  -e JWT_SECRET=<secreto> \
+  -e CLOUDINARY_CLOUD_NAME=<cloud_name> \
+  -e CLOUDINARY_API_KEY=<api_key> \
+  -e CLOUDINARY_API_SECRET=<api_secret> \
+  property-rental-management:latest
+```
