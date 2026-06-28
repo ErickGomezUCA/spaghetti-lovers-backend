@@ -62,8 +62,6 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             seedAvailabilityAndMaintenance(reservations, properties, users);
 
-            seedNotifications(users);
-
             log.info("¡Sembrado masivo completado con éxito!");
         }
     }
@@ -181,22 +179,33 @@ public class DatabaseSeeder implements CommandLineRunner {
         propertyPhotoRepository.saveAll(photos);
         maintenanceScheduleRepository.saveAll(schedules);
     }
+
     private List<Property> seedProperties(List<AppUser> allUsers) {
         List<Property> properties = new ArrayList<>();
         List<AppUser> landlords = allUsers.stream()
                 .filter(u -> u.getRole() == UserRole.LANDLORD)
                 .toList();
 
+        String[] realTitles = {
+                "Cabaña Rústica Los Pinos", "Apartamento Ejecutivo Centro", "Casa Familiar con Amplio Jardín",
+                "Villa Exclusiva con Piscina", "Loft Moderno Minimalista", "Hostal Ruta de Paz - Habitación Privada",
+                "Quinta de Descanso La Arboleda", "Estudio Céntrico Ideal para Viajeros", "Cabaña de Montaña El Mirador",
+                "Penthouse con Vista a la Ciudad", "Casa de Playa Brisa Marina", "Condominio Seguro 24/7",
+                "Habitación Cómoda cerca de Universidad", "Duplex Espacioso para Familias", "Cabaña Eco-Amigable"
+        };
+
         for (int i = 0; i < 25; i++) {
             AppUser randomLandlord = landlords.get(random.nextInt(landlords.size()));
             PropertyType randomType = PropertyType.values()[random.nextInt(PropertyType.values().length)];
-
             BigDecimal basePrice = BigDecimal.valueOf(faker.number().numberBetween(30, 250));
+
+            String title = realTitles[random.nextInt(realTitles.length)];
 
             Property property = Property.builder()
                     .landlord(randomLandlord)
-                    .title(faker.lorem().sentence(3))
-                    .description(faker.lorem().paragraph(2))
+                    .title(title + " en " + cities[random.nextInt(cities.length)])
+                    .description("Excelente propiedad equipada con todas las comodidades básicas. " +
+                            "Ideal para estancias cortas o largas. Ubicación estratégica cerca de zonas comerciales y turísticas.")
                     .address(faker.address().streetAddress())
                     .city(cities[random.nextInt(cities.length)])
                     .department(departments[random.nextInt(departments.length)])
@@ -209,8 +218,8 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .bathrooms(faker.number().numberBetween(1, 4))
                     .areaSqm(BigDecimal.valueOf(faker.number().numberBetween(40, 300)))
                     .propertyType(randomType)
-                    .propertyStatus(PropertyStatus.ACTIVE)
-                    .rules(faker.lorem().sentence(5))
+                    .propertyStatus(PropertyStatus.ACTIVE) // Se actualizará en el ciclo de reservas si está ocupada
+                    .rules("Prohibido fumar en interiores. No se permiten mascotas grandes. Respetar horas de silencio (10 PM - 6 AM).")
                     .build();
 
             properties.add(property);
@@ -235,6 +244,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             int totalNights = faker.number().numberBetween(1, 14);
             LocalDate checkOut = checkIn.plusDays(totalNights);
 
+            LocalDateTime createdAt = checkIn.minusDays(faker.number().numberBetween(1, 15)).atStartOfDay();
+
             BigDecimal baseTotal = randomProperty.getBasePricePerNight().multiply(BigDecimal.valueOf(totalNights));
             BigDecimal cleaningFee = randomProperty.getCleaningFee();
             BigDecimal totalPrice = baseTotal.add(cleaningFee);
@@ -250,6 +261,8 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .totalPrice(totalPrice)
                     .guestsCount(faker.number().numberBetween(1, randomProperty.getMaxGuests()))
                     .reservationStatus(randomStatus)
+                    .createdAt(createdAt)
+                    .updatedAt(createdAt)
                     .build();
 
             reservations.add(reservation);
@@ -264,57 +277,94 @@ public class DatabaseSeeder implements CommandLineRunner {
         List<Rating> ratings = new ArrayList<>();
         List<Signature> signatures = new ArrayList<>();
         List<Contract> contracts = new ArrayList<>();
+        List<Notification> notifications = new ArrayList<>();
 
         for (Reservation res : reservations) {
+
+            boolean codesActive = res.getReservationStatus() == ReservationStatus.ACTIVE || res.getReservationStatus() == ReservationStatus.RESERVED;
 
             accessCodes.add(AccessCode.builder()
                     .property(res.getProperty())
                     .reservation(res)
-                    .code(faker.number().digits(6)) // Ej: 482910
+                    .code(faker.number().digits(6))
                     .codeType(CodeType.ACCESS_CODE)
-                    .validFrom(res.getCheckInDate().atTime(14, 0)) // Check-in a las 2 PM
-                    .validUntil(res.getCheckOutDate().atTime(11, 0)) // Check-out a las 11 AM
-                    .isActive(res.getReservationStatus() == ReservationStatus.ACTIVE)
-                    .createdAt(LocalDateTime.now())
+                    .validFrom(res.getCheckInDate().atTime(14, 0))
+                    .validUntil(res.getCheckOutDate().atTime(11, 0))
+                    .isActive(codesActive)
+                    .createdAt(res.getCreatedAt())
+                    .build());
+
+            accessCodes.add(AccessCode.builder()
+                    .property(res.getProperty())
+                    .reservation(res)
+                    .code(faker.number().digits(8))
+                    .codeType(CodeType.RECOVERY_CODE)
+                    .validFrom(res.getCheckInDate().atTime(14, 0))
+                    .validUntil(res.getCheckOutDate().atTime(11, 0))
+                    .isActive(codesActive)
+                    .createdAt(res.getCreatedAt())
                     .build());
 
             payments.add(Payment.builder()
                     .reservation(res)
-                    .amount(res.getTotalPrice())
+                    .amount(res.getTotalPrice().subtract(res.getProperty().getSecurityDepositAmount()))
                     .paymentType(PaymentType.RESERVATION)
                     .paymentMethod(PaymentMethod.values()[random.nextInt(PaymentMethod.values().length)])
                     .createdAt(res.getCreatedAt())
                     .build());
 
-            if (random.nextDouble() < 0.20) {
+            payments.add(Payment.builder()
+                    .reservation(res)
+                    .amount(res.getProperty().getSecurityDepositAmount())
+                    .paymentType(PaymentType.GUARANTEE_DEPOSIT)
+                    .paymentMethod(PaymentMethod.CARD) // Depósitos usualmente en tarjeta
+                    .refundAmount(res.getReservationStatus() == ReservationStatus.COMPLETED ? res.getProperty().getSecurityDepositAmount() : null)
+                    .refundedAt(res.getReservationStatus() == ReservationStatus.COMPLETED ? LocalDateTime.now() : null)
+                    .createdAt(res.getCreatedAt())
+                    .build());
+
+            notifications.add(Notification.builder()
+                    .user(res.getProperty().getLandlord())
+                    .reservation(res) // VINCULADA ESTRICTAMENTE
+                    .type(NotificationType.INFO)
+                    .title("Nueva reserva confirmada")
+                    .message("El inquilino " + res.getTenant().getName() + " ha reservado " + res.getProperty().getTitle())
+                    .isRead(random.nextBoolean())
+                    .createdAt(res.getCreatedAt())
+                    .build());
+
+            if (random.nextDouble() < 0.20 && res.getReservationStatus() != ReservationStatus.CANCELLED) {
                 Fine fine = Fine.builder()
                         .reservation(res)
                         .issuedBy(res.getProperty().getLandlord())
                         .fineType(FineType.values()[random.nextInt(FineType.values().length)])
-                        .description(faker.lorem().sentence())
+                        .description("Infracción registrada según las reglas de la propiedad.")
                         .amount(BigDecimal.valueOf(faker.number().numberBetween(20, 100)))
                         .issuedAt(LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5)))
+                        .resolvedAt(res.getReservationStatus() == ReservationStatus.COMPLETED ? LocalDateTime.now() : null)
                         .build();
                 fines.add(fine);
 
-                payments.add(Payment.builder()
-                        .reservation(res)
-                        .amount(fine.getAmount())
-                        .paymentType(PaymentType.FINE)
-                        .paymentMethod(PaymentMethod.CARD)
-                        .createdAt(LocalDateTime.now())
+                notifications.add(Notification.builder()
+                        .user(res.getTenant())
+                        .reservation(res) // VINCULADA A LA RESERVA
+                        .type(NotificationType.INFO)
+                        .title("Multa emitida")
+                        .message("Se ha emitido un cargo por " + fine.getFineType().name() + " en su estadía.")
+                        .isRead(false)
+                        .createdAt(fine.getIssuedAt())
                         .build());
             }
 
             Signature tenantSig = Signature.builder()
                     .hash(UUID.randomUUID().toString())
-                    .signedTimestamp(LocalDateTime.now().minusDays(1))
+                    .signedTimestamp(res.getCreatedAt().plusHours(1))
                     .user(res.getTenant())
                     .build();
 
             Signature landlordSig = Signature.builder()
                     .hash(UUID.randomUUID().toString())
-                    .signedTimestamp(LocalDateTime.now().minusDays(2))
+                    .signedTimestamp(res.getCreatedAt().plusHours(2))
                     .user(res.getProperty().getLandlord())
                     .build();
 
@@ -336,10 +386,15 @@ public class DatabaseSeeder implements CommandLineRunner {
                         .reservation(res)
                         .reviewer(res.getTenant())
                         .reviewed(res.getProperty().getLandlord())
-                        .score(faker.number().numberBetween(3, 5)) // Reseñas realistas entre 3 y 5
-                        .comment(faker.lorem().paragraph())
+                        .score(faker.number().numberBetween(3, 5))
+                        .comment("Excelente estadía, el lugar estaba muy limpio y el anfitrión fue muy amable.")
                         .createdAt(LocalDateTime.now())
                         .build());
+            }
+
+            if (res.getReservationStatus() == ReservationStatus.ACTIVE || res.getReservationStatus() == ReservationStatus.RESERVED) {
+                res.getProperty().setPropertyStatus(PropertyStatus.RESERVED);
+                propertyRepository.save(res.getProperty());
             }
         }
 
@@ -349,25 +404,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         signatureRepository.saveAll(signatures);
         contractRepository.saveAll(contracts);
         ratingRepository.saveAll(ratings);
+        notificationRepository.saveAll(notifications); // Guardamos notificaciones aquí
     }
-
-    private void seedNotifications(List<AppUser> users) {
-        List<Notification> notifications = new ArrayList<>();
-        for (AppUser user : users) {
-            for (int i = 0; i < 3; i++) {
-                notifications.add(Notification.builder()
-                        .user(user)
-                        .type(NotificationType.values()[random.nextInt(NotificationType.values().length)])
-                        .title(faker.lorem().words(3).toString())
-                        .message(faker.lorem().sentence(8))
-                        .isRead(random.nextBoolean())
-                        .createdAt(LocalDateTime.now().minusDays(faker.number().numberBetween(0, 10)))
-                        .build());
-            }
-        }
-        notificationRepository.saveAll(notifications);
-    }
-
     private void seedAvailabilityAndMaintenance(List<Reservation> reservations, List<Property> properties, List<AppUser> users) {
         List<AvailabilityCalendar> calendarBlocks = new ArrayList<>();
         List<Maintenance> maintenanceRequests = new ArrayList<>();
