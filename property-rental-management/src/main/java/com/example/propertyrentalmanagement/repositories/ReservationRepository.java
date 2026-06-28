@@ -77,4 +77,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             @Param("searchTerm") String searchTerm,
             Pageable pageable
     );
+
+    @Query("SELECT r FROM Reservation r WHERE " +
+            "(:status IS NULL OR r.reservationStatus = :status) " +
+            "AND (:searchTerm IS NULL OR :searchTerm = '' OR " +
+            "LOWER(CAST(r.id AS string)) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.property.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.tenant.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(r.property.landlord.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Reservation> findAllSystemReservationsWithFilters(
+            @Param("status") ReservationStatus status,
+            @Param("searchTerm") String searchTerm,
+            Pageable pageable
+    );
 }

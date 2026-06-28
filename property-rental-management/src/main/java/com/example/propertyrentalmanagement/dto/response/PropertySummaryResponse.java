@@ -16,8 +16,8 @@ public record PropertySummaryResponse(
         String mainPhotoUrl
 ) {
     public static PropertySummaryResponse fromEntity(Property property) {
-        String mainPhoto = (property.getPhotos() != null && !property.getPhotos().isEmpty())
-                ? property.getPhotos().get(0).getUrl()
+        String mainPhotoUrl = (property.getPhotos() != null && !property.getPhotos().isEmpty())
+                ? property.getPhotos().getFirst().getUrl()
                 : null;
 
         return new PropertySummaryResponse(
@@ -28,7 +28,7 @@ public record PropertySummaryResponse(
                 property.getDepartment(),
                 property.getBasePricePerNight(),
                 property.getSecurityDepositAmount(),
-                mainPhoto
+                mainPhotoUrl
         );
     }
 }

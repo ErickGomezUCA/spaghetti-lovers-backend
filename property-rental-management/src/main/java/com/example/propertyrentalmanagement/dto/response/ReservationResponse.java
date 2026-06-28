@@ -15,6 +15,7 @@ public record ReservationResponse(
         String propertyImage,
         String tenantName,
         String tenantEmail,
+        String landlordName,
         LocalDate checkInDate,
         LocalDate checkOutDate,
         int totalNights,
@@ -29,6 +30,7 @@ public record ReservationResponse(
             imageUrl = reservation.getProperty().getPhotos().get(0).getUrl();
         }
 
+
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getProperty().getTitle(),
@@ -37,6 +39,7 @@ public record ReservationResponse(
                 imageUrl,
                 reservation.getTenant().getName(),
                 reservation.getTenant().getEmail(),
+                reservation.getProperty().getLandlord().getName(),
                 reservation.getCheckInDate(),
                 reservation.getCheckOutDate(),
                 reservation.getTotalNights(),
