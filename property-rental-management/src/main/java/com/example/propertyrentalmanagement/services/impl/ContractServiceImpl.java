@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import com.example.propertyrentalmanagement.enums.NotificationType;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
@@ -40,6 +42,7 @@ public class ContractServiceImpl implements ContractService {
     private final SignatureService signatureService;
     private final TemplateEngine templateEngine;
     private final AuthenticatedUserProvider authProvider;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public ContractResponse createContract(CreateContractRequest contractRequest) {
@@ -66,6 +69,25 @@ public class ContractServiceImpl implements ContractService {
                 .build();
 
         Contract createdContract = contractRepository.save(contract);
+
+        String formattedExpirationDate = contract.getExpiresAtTimestamp()
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
+        Notification notification = Notification.builder()
+                .user(reservationFound.getTenant())
+                .reservation(reservationFound)
+                .type(NotificationType.INFO)
+                .title("Contrato pendiente de firma")
+                .message("Tienes un contrato pendiente de firma para tu reserva en "
+                        + reservationFound.getProperty().getTitle()
+                        + ". Firma antes del "
+                        + formattedExpirationDate
+                        + ".")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(notification);
         return ContractResponse.fromEntity(createdContract);
     }
 
@@ -127,6 +149,25 @@ public class ContractServiceImpl implements ContractService {
         }
 
         Contract signedContract = contractRepository.save(contractToSign);
+
+        if (authUser.getRole() == UserRole.TENANT) {
+            Notification notification = Notification.builder()
+                    .user(property.getLandlord())
+                    .reservation(reservation)
+                    .type(NotificationType.INFO)
+                    .title("Contrato firmado")
+                    .message("El contrato de la reserva en "
+                            + property.getTitle()
+                            + " ha sido firmado por el inquilino "
+                            + authUser.getName()
+                            + ".")
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            notificationRepository.save(notification);
+        }
+
         return ContractResponse.fromEntity(signedContract);
     }
 

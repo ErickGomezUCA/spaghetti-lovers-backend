@@ -156,6 +156,17 @@ public class AppUserController {
         );
     }
 
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping("/landlords")
+    ResponseEntity<GenericResponse> getLandlords() {
+        List<UserResponse> landlords = appUserService.getUsersByRole(UserRole.LANDLORD);
+        return GenericResponse.builder()
+                .message("Landlords found")
+                .data(landlords)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
     @PreAuthorize("@authorizationService.isAdminOrCurrentUser(#userId)")
     @GetMapping("/{userId}")
     ResponseEntity<GenericResponse> getUserByUUID(@PathVariable UUID userId) {
@@ -189,4 +200,5 @@ public class AppUserController {
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
+
 }

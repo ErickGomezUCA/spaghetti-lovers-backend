@@ -35,6 +35,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private final AvailabilityCalendarRepository availabilityCalendarRepository;
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
+    private final AppUserRepository appUserRepository;
 
     @Override
     public MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest) {
@@ -84,12 +85,52 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         Notification createNotification = Notification.builder()
                 .user(property.getLandlord())
                 .type(NotificationType.MAINTENANCE)
-                .title("Nueva solicitud de mantenimiento")
-                .message("Nueva solicitud: \"" + maintenanceRequest.title() + "\" con urgencia " + maintenanceRequest.urgency() + ".")
+                .title(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Solicitud de mantenimiento crítico"
+                                : "Nueva solicitud de mantenimiento"
+                )
+                .message(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Se ha reportado un problema urgente en "
+                                + property.getTitle()
+                                + ": "
+                                + maintenanceRequest.title()
+                                + "."
+                                : "Nueva solicitud: \""
+                                + maintenanceRequest.title()
+                                + "\" con urgencia "
+                                + maintenanceRequest.urgency()
+                                + "."
+                )
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
+
         notificationRepository.save(createNotification);
+
+        if (maintenanceRequest.urgency().name().equals("CRITICAL")) {
+            List<AppUser> admins = appUserRepository.findByRole(UserRole.ADMIN);
+
+            if (!admins.isEmpty()) {
+                List<Notification> adminNotifications = admins.stream()
+                        .map(admin -> Notification.builder()
+                                .user(admin)
+                                .type(NotificationType.MAINTENANCE)
+                                .title("Mantenimiento crítico reportado")
+                                .message("Se reportó un mantenimiento crítico en "
+                                        + property.getTitle()
+                                        + ": \""
+                                        + maintenanceRequest.title()
+                                        + "\".")
+                                .isRead(false)
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .toList();
+
+                notificationRepository.saveAll(adminNotifications);
+            }
+        }
 
         // Using this pattern to include photosUrl on response
         return new MaintenanceResponse(

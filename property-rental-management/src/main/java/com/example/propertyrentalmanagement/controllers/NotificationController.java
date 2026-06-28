@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,14 +22,25 @@ public class NotificationController {
 
     @GetMapping
     public ResponseEntity<GenericResponse> getMyNotifications(
-            @RequestParam(defaultValue = "false") Boolean unreadOnly
+            @RequestParam(defaultValue = "false") Boolean unreadOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
     ) {
-        List<NotificationResponse> notifications =
-                notificationService.getMyNotifications(unreadOnly);
+        Page<NotificationResponse> notifications =
+                notificationService.getMyNotifications(
+                        unreadOnly,
+                        page,
+                        pageSize,
+                        sortBy,
+                        sortOrder
+                );
 
         return GenericResponse.builder()
                 .message("Notifications retrieved successfully")
-                .data(notifications)
+                .data(notifications.getContent())
+                .pagination(PaginationMeta.fromPage(notifications))
                 .status(HttpStatus.OK)
                 .build()
                 .buildResponse();

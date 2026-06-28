@@ -30,11 +30,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.propertyrentalmanagement.entitites.Notification;
+import com.example.propertyrentalmanagement.enums.NotificationType;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +57,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final ReservationRepository reservationRepository;
     private final PaymentRepository paymentRepository;
     private final IdentityDocumentRepository identityDocumentRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public AuthResponse createUser(CreateUserRequest userRequest) {
@@ -68,6 +76,30 @@ public class AppUserServiceImpl implements AppUserService {
                 .build();
 
         AppUser createdUser = appUserRepository.save(user);
+        if (createdUser.getRole() != UserRole.ADMIN) {
+            List<AppUser> admins = appUserRepository.findByRole(UserRole.ADMIN);
+
+            if (!admins.isEmpty()) {
+                List<Notification> notifications = admins.stream()
+                        .map(admin -> Notification.builder()
+                                .user(admin)
+                                .type(NotificationType.INFO)
+                                .title("Nuevo usuario registrado")
+                                .message("Se registró un nuevo usuario: "
+                                        + createdUser.getName()
+                                        + " - "
+                                        + createdUser.getEmail()
+                                        + " con rol "
+                                        + createdUser.getRole()
+                                        + ".")
+                                .isRead(false)
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .toList();
+
+                notificationRepository.saveAll(notifications);
+            }
+        }
         String token = jwtService.generateToken(createdUser);
 
         return AuthResponse.builder()
@@ -232,4 +264,11 @@ public class AppUserServiceImpl implements AppUserService {
         return new AdminMonthlySummary(reservationsThisMonth, incomeThisMonth, averageOccupation);
     }
 
+    @Override
+    public List<UserResponse> getUsersByRole(UserRole role) {
+        return appUserRepository.findByRole(role)
+                .stream()
+                .map(UserResponse::fromEntity)
+                .toList();
+    }
 }

@@ -3,6 +3,7 @@ package com.example.propertyrentalmanagement.services;
 import com.example.propertyrentalmanagement.dto.response.AccessCodeDetailResponse;
 import com.example.propertyrentalmanagement.dto.response.AccessCodeResponse;
 import com.example.propertyrentalmanagement.entitites.Reservation;
+import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,9 +15,19 @@ public interface AccessCodeService {
 
     AccessCodeResponse getActiveAccessCodeByReservationId(UUID reservationId);
 
-    List<AccessCodeDetailResponse> getTenantAccessCodes();
+    Page<AccessCodeDetailResponse> getTenantAccessCodes(
+            int page,
+            int pageSize,
+            String sortBy,
+            String sortOrder
+    );
 
-    List<AccessCodeDetailResponse> getLandlordAccessCodes();
+    Page<AccessCodeDetailResponse> getLandlordAccessCodes(
+            int page,
+            int pageSize,
+            String sortBy,
+            String sortOrder
+    );
 
     void invalidateCodesByReservation(Reservation reservation);
 

@@ -11,7 +11,9 @@ import com.example.propertyrentalmanagement.dto.response.UserRatingsResponse;
 import com.example.propertyrentalmanagement.dto.response.UserResponse;
 import com.example.propertyrentalmanagement.enums.UserRole;
 import org.springframework.data.domain.Page;
+import com.example.propertyrentalmanagement.enums.UserRole;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface AppUserService {
@@ -35,6 +37,8 @@ public interface AppUserService {
     UserResponse updateUser(UUID userId, UpdateUserRequest updateUserRequest);
 
     void changePassword(UUID userId, ChangePasswordRequest changePasswordRequest);
+
+    List<UserResponse> getUsersByRole(UserRole role);
 
     AdminMonthlySummary getAdminMonthlySummary(long activePropertiesCount);
 }

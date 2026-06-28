@@ -17,6 +17,9 @@ import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.example.propertyrentalmanagement.entitites.Notification;
+import com.example.propertyrentalmanagement.enums.NotificationType;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +33,7 @@ public class RatingServiceImpl implements RatingService {
     private final ReservationRepository reservationRepository;
     private final AppUserRepository appUserRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public RatingResponse createRating(CreateRatingRequest request) {
@@ -75,7 +79,29 @@ public class RatingServiceImpl implements RatingService {
 
         Rating saved = ratingRepository.save(rating);
 
+        if (reviewed.getRole() == UserRole.LANDLORD) {
+            Notification notification = Notification.builder()
+                    .user(reviewed)
+                    .reservation(reservation)
+                    .type(NotificationType.INFO)
+                    .title("Nueva calificación recibida")
+                    .message(reviewer.getName()
+                            + " te ha calificado con "
+                            + request.score()
+                            + " estrellas."
+                            + (request.comment() != null && !request.comment().isBlank()
+                            ? " Comentario: \"" + request.comment() + "\"."
+                            : ""))
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            notificationRepository.save(notification);
+        }
+
         return RatingResponse.fromEntity(saved);
+
+
     }
 
     @Override
