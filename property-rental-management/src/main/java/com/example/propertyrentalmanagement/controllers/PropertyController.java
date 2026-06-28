@@ -3,11 +3,7 @@ package com.example.propertyrentalmanagement.controllers;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
-import com.example.propertyrentalmanagement.dto.response.AvailabilityResponse;
-import com.example.propertyrentalmanagement.dto.response.GenericResponse;
-import com.example.propertyrentalmanagement.dto.response.PropertyReportResponse;
-import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
-import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
+import com.example.propertyrentalmanagement.dto.response.*;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
 import com.example.propertyrentalmanagement.services.AvailabilityService;
@@ -96,23 +92,6 @@ public class PropertyController {
                 .build().buildResponse();
     }
 
-    @GetMapping("/landlord/{landlordId}")
-    ResponseEntity<GenericResponse> getPropertiesByLandlordId(
-            @PathVariable UUID landlordId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortOrder
-    ) {
-        Page<PropertyResponse> properties = propertyService.getPropertiesByLandlordId(landlordId, page, pageSize, sortBy, sortOrder);
-        return GenericResponse.builder()
-                .message("Properties found")
-                .data(properties.getContent())
-                .pagination(PaginationMeta.fromPage(properties))
-                .status(HttpStatus.OK)
-                .build().buildResponse();
-    }
-
     @PreAuthorize("@authorizationService.isLandlord()")
     @PutMapping("/{id}")
     ResponseEntity<GenericResponse> updateProperty(
@@ -150,6 +129,48 @@ public class PropertyController {
         return GenericResponse.builder()
                 .message("Availability checked successfully")
                 .data(availability)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord()")
+    @GetMapping("/landlord/stats")
+    ResponseEntity<GenericResponse> getLandlordStats() {
+        LandlordDashboardStats stats = propertyService.getLandlordDashboardStats();
+        return GenericResponse.builder()
+                .message("Landlord stats found")
+                .data(stats)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord()")
+    @GetMapping("/landlord/calendar")
+    ResponseEntity<GenericResponse> getLandlordCalendar(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        LandlordCalendarResponse calendar = propertyService.getLandlordCalendar(startDate, endDate);
+        return GenericResponse.builder()
+                .message("Landlord calendar found")
+                .data(calendar)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @GetMapping("/landlord/{landlordId}")
+    ResponseEntity<GenericResponse> getPropertiesByLandlordId(
+            @PathVariable UUID landlordId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<PropertyResponse> properties = propertyService.getPropertiesByLandlordId(landlordId, page, pageSize, sortBy, sortOrder);
+        return GenericResponse.builder()
+                .message("Properties found")
+                .data(properties.getContent())
+                .pagination(PaginationMeta.fromPage(properties))
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }

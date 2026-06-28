@@ -5,11 +5,8 @@ import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.*;
-import com.example.propertyrentalmanagement.enums.BlockType;
-import com.example.propertyrentalmanagement.enums.MaintenancePhotoType;
-import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
-import com.example.propertyrentalmanagement.enums.NotificationType;
-import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.enums.*;
+import com.example.propertyrentalmanagement.exceptions.CalendarConflictException;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.repositories.*;
@@ -31,6 +28,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MaintenanceServiceImpl implements MaintenanceService {
+    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private final MaintenanceRepository maintenanceRepository;
     private final MaintenancePhotoRepository maintenancePhotoRepository;
     private final ReservationRepository reservationRepository;
@@ -38,8 +36,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
     private final AppUserRepository appUserRepository;
-
-    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     @Override
     public MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest) {
@@ -56,7 +52,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         Maintenance maintenance = Maintenance.builder()
-                .property(property) // TODO: Remove property? It can be fetched from reservation either way
+                .property(property)
                 .reservation(reservationFound)
                 .reportedBy(authUser)
                 .title(maintenanceRequest.title())
@@ -67,6 +63,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         Maintenance createdMaintenance = maintenanceRepository.save(maintenance);
 
+        List<String> savedPhotoUrls = List.of();
         if (maintenanceRequest.photoUrls() != null && !maintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = maintenanceRequest.photoUrls().stream()
                     .filter(Objects::nonNull)
@@ -81,6 +78,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             if (!photos.isEmpty()) {
                 maintenancePhotoRepository.saveAll(photos);
+                savedPhotoUrls = photos.stream().map(MaintenancePhoto::getUrl).toList();
             }
         }
 
@@ -134,7 +132,21 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             }
         }
 
-        return MaintenanceResponse.fromEntity(createdMaintenance);
+        // Using this pattern to include photosUrl on response
+        return new MaintenanceResponse(
+                createdMaintenance.getId(),
+                property.getId(),
+                reservationFound.getId(),
+                authUser.getId(),
+                createdMaintenance.getTitle(),
+                createdMaintenance.getDescription(),
+                createdMaintenance.getUrgency(),
+                createdMaintenance.getResolutionNotes(),
+                createdMaintenance.getScheduledStart(),
+                createdMaintenance.getScheduledEnd(),
+                createdMaintenance.getMaintenanceStatus(),
+                savedPhotoUrls
+        );
     }
 
     @Override
@@ -184,25 +196,28 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         LocalDateTime scheduledStart = LocalDateTime.parse(confirmMaintenanceRequest.scheduledStart(), HTML_DATETIME);
         LocalDateTime scheduledEnd = LocalDateTime.parse(confirmMaintenanceRequest.scheduledEnd(), HTML_DATETIME);
 
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
+                maintenanceFound.getProperty().getId(), scheduledStart, scheduledEnd);
+
+        if (!overlaps.isEmpty()) {
+            throw new CalendarConflictException("El rango de fechas seleccionado ya está ocupado por otro evento en el calendario.");
+        }
+
         maintenanceFound.setScheduledStart(scheduledStart);
         maintenanceFound.setScheduledEnd(scheduledEnd);
         maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVING);
         Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
 
         if (confirmMaintenanceRequest.blockCalendar()) {
-            List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
-                    updatedMaintenance.getProperty().getId(), scheduledStart, scheduledEnd);
-            if (overlaps.isEmpty()) {
-                AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
-                        .property(updatedMaintenance.getProperty())
-                        .timestampStart(scheduledStart)
-                        .timestampEnd(scheduledEnd)
-                        .blockType(BlockType.MAINTENANCE)
-                        .maintenance(updatedMaintenance)
-                        .blockedReason("Mantenimiento: " + updatedMaintenance.getTitle())
-                        .build();
-                availabilityCalendarRepository.save(calendarBlock);
-            }
+            AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
+                    .property(updatedMaintenance.getProperty())
+                    .timestampStart(scheduledStart)
+                    .timestampEnd(scheduledEnd)
+                    .blockType(BlockType.MAINTENANCE)
+                    .maintenance(updatedMaintenance)
+                    .blockedReason(updatedMaintenance.getTitle())
+                    .build();
+            availabilityCalendarRepository.save(calendarBlock);
         }
 
         Notification confirmNotification = Notification.builder()

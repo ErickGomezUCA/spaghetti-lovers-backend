@@ -3,11 +3,15 @@ package com.example.propertyrentalmanagement.services;
 import com.example.propertyrentalmanagement.dto.request.AttachPhotoRequest;
 import com.example.propertyrentalmanagement.dto.request.CreatePropertyRequest;
 import com.example.propertyrentalmanagement.dto.request.UpdatePropertyRequest;
+import com.example.propertyrentalmanagement.dto.response.LandlordCalendarResponse;
+import com.example.propertyrentalmanagement.dto.response.LandlordDashboardStats;
 import com.example.propertyrentalmanagement.dto.response.PropertyResponse;
 import com.example.propertyrentalmanagement.enums.PropertyStatus;
 import com.example.propertyrentalmanagement.enums.PropertyType;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface PropertyService {
@@ -25,4 +29,8 @@ public interface PropertyService {
     PropertyResponse updateProperty(UUID propertyId, UpdatePropertyRequest propertyRequest);
 
     void deleteProperty(UUID propertyId);
+
+    LandlordDashboardStats getLandlordDashboardStats();
+
+    LandlordCalendarResponse getLandlordCalendar(LocalDate startDate, LocalDate endDate);
 }
