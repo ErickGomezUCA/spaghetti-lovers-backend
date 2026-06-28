@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record PropertyReportResponse(
         UUID propertyId,
+        String propertyTitle,
         PeriodResponse period,
         Double occupancyRate,
         Integer totalNightsOccupied,

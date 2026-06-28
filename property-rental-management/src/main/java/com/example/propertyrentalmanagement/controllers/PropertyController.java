@@ -23,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -164,6 +165,21 @@ public class PropertyController {
         return GenericResponse.builder()
                 .message("Property report generated successfully")
                 .data(report)
+                .status(HttpStatus.OK)
+                .build().buildResponse();
+    }
+
+    @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isAdmin()")
+    @GetMapping("/report")
+    ResponseEntity<GenericResponse> getAllPropertiesReport(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) UUID landlordId
+    ) {
+        List<PropertyReportResponse> reports = reportService.getAllPropertiesReport(startDate, endDate, landlordId);
+        return GenericResponse.builder()
+                .message("Properties report generated successfully")
+                .data(reports)
                 .status(HttpStatus.OK)
                 .build().buildResponse();
     }
