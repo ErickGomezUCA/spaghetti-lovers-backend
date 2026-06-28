@@ -112,6 +112,24 @@ public class ReservationServiceImpl implements ReservationService {
         createPayment(reservation, baseTotal.add(cleaningFee).subtract(discount), PaymentType.RESERVATION, request.paymentMethod());
         createPayment(reservation, securityDeposit, PaymentType.GUARANTEE_DEPOSIT, request.paymentMethod());
 
+        Notification tenantReservationNotification = Notification.builder()
+                .user(tenant)
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Reserva confirmada")
+                .message("Tu reserva en "
+                        + property.getTitle()
+                        + " ha sido confirmada para el "
+                        + reservation.getCheckInDate()
+                        + " al "
+                        + reservation.getCheckOutDate()
+                        + ".")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(tenantReservationNotification);
+
         AvailabilityCalendar block = AvailabilityCalendar.builder()
                 .property(property)
                 .timestampStart(checkInTime)
@@ -136,6 +154,20 @@ public class ReservationServiceImpl implements ReservationService {
         notificationRepository.save(notification);
 
         accessCodeService.generateAccessCodeForReservation(reservation);
+
+        Notification accessCodeNotification = Notification.builder()
+                .user(tenant)
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Código de acceso generado")
+                .message("Tu código de acceso para la propiedad "
+                        + property.getTitle()
+                        + " ha sido generado y estará disponible para tu reserva.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(accessCodeNotification);
 
         contractService.createContract(new CreateContractRequest(reservation.getId()));
 

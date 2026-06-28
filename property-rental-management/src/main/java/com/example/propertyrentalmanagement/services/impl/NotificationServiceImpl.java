@@ -10,6 +10,9 @@ import com.example.propertyrentalmanagement.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,16 +26,33 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getMyNotifications(Boolean unreadOnly) {
+    public Page<NotificationResponse> getMyNotifications(
+            Boolean unreadOnly,
+            int page,
+            int pageSize,
+            String sortBy,
+            String sortOrder
+    ) {
         AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
-        List<Notification> notifications = Boolean.TRUE.equals(unreadOnly)
-                ? notificationRepository.findByUser_IdAndIsReadFalseOrderByCreatedAtDesc(currentUser.getId())
-                : notificationRepository.findByUser_IdOrderByCreatedAtDesc(currentUser.getId());
+        Pageable pageable = PaginationUtils.getPageRequest(
+                page,
+                pageSize,
+                sortBy,
+                sortOrder
+        );
 
-        return notifications.stream()
-                .map(NotificationResponse::fromEntity)
-                .toList();
+        Page<Notification> notifications = Boolean.TRUE.equals(unreadOnly)
+                ? notificationRepository.findByUser_IdAndIsReadFalse(
+                currentUser.getId(),
+                pageable
+        )
+                : notificationRepository.findByUser_Id(
+                currentUser.getId(),
+                pageable
+        );
+
+        return notifications.map(NotificationResponse::fromEntity);
     }
 
     @Override
