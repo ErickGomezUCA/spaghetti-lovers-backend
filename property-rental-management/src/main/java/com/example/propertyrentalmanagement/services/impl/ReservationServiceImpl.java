@@ -155,6 +155,20 @@ public class ReservationServiceImpl implements ReservationService {
 
         accessCodeService.generateAccessCodeForReservation(reservation);
 
+        Notification accessCodeNotification = Notification.builder()
+                .user(tenant)
+                .reservation(reservation)
+                .type(NotificationType.INFO)
+                .title("Código de acceso generado")
+                .message("Tu código de acceso para la propiedad "
+                        + property.getTitle()
+                        + " ha sido generado y estará disponible para tu reserva.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(accessCodeNotification);
+
         contractService.createContract(new CreateContractRequest(reservation.getId()));
 
         return ReservationResponse.fromEntity(reservation);

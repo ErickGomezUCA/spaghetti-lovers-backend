@@ -69,6 +69,10 @@ public class ContractServiceImpl implements ContractService {
                 .build();
 
         Contract createdContract = contractRepository.save(contract);
+
+        String formattedExpirationDate = contract.getExpiresAtTimestamp()
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+
         Notification notification = Notification.builder()
                 .user(reservationFound.getTenant())
                 .reservation(reservationFound)
@@ -76,8 +80,8 @@ public class ContractServiceImpl implements ContractService {
                 .title("Contrato pendiente de firma")
                 .message("Tienes un contrato pendiente de firma para tu reserva en "
                         + reservationFound.getProperty().getTitle()
-                        + ". Firma antes de "
-                        + contract.getExpiresAtTimestamp()
+                        + ". Firma antes del "
+                        + formattedExpirationDate
                         + ".")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
