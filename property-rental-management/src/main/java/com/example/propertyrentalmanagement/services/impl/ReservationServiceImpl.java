@@ -301,7 +301,9 @@ public class ReservationServiceImpl implements ReservationService {
             );
         }
 
-        if (!reservation.getCheckInDate().isAfter(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+
+        if (reservation.getCheckInDate().isBefore(today)) {
             throw new InvalidReservationCancellationException(
                     "Cannot cancel a reservation whose check-in date has already passed"
             );
