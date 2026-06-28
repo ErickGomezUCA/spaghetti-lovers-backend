@@ -6,6 +6,7 @@ import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceReques
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.*;
+import com.example.propertyrentalmanagement.exceptions.CalendarConflictException;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.repositories.*;
@@ -138,25 +139,28 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         LocalDateTime scheduledStart = LocalDateTime.parse(confirmMaintenanceRequest.scheduledStart(), HTML_DATETIME);
         LocalDateTime scheduledEnd = LocalDateTime.parse(confirmMaintenanceRequest.scheduledEnd(), HTML_DATETIME);
 
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
+                maintenanceFound.getProperty().getId(), scheduledStart, scheduledEnd);
+
+        if (!overlaps.isEmpty()) {
+            throw new CalendarConflictException("El rango de fechas seleccionado ya está ocupado por otro evento en el calendario.");
+        }
+
         maintenanceFound.setScheduledStart(scheduledStart);
         maintenanceFound.setScheduledEnd(scheduledEnd);
         maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVING);
         Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
 
         if (confirmMaintenanceRequest.blockCalendar()) {
-            List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
-                    updatedMaintenance.getProperty().getId(), scheduledStart, scheduledEnd);
-            if (overlaps.isEmpty()) {
-                AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
-                        .property(updatedMaintenance.getProperty())
-                        .timestampStart(scheduledStart)
-                        .timestampEnd(scheduledEnd)
-                        .blockType(BlockType.MAINTENANCE)
-                        .maintenance(updatedMaintenance)
-                        .blockedReason("Mantenimiento: " + updatedMaintenance.getTitle())
-                        .build();
-                availabilityCalendarRepository.save(calendarBlock);
-            }
+            AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
+                    .property(updatedMaintenance.getProperty())
+                    .timestampStart(scheduledStart)
+                    .timestampEnd(scheduledEnd)
+                    .blockType(BlockType.MAINTENANCE)
+                    .maintenance(updatedMaintenance)
+                    .blockedReason("Mantenimiento: " + updatedMaintenance.getTitle())
+                    .build();
+            availabilityCalendarRepository.save(calendarBlock);
         }
 
         Notification confirmNotification = Notification.builder()
