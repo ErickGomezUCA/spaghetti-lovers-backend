@@ -176,7 +176,8 @@ public class ReservationController {
                         .status(HttpStatus.OK)
                         .build()
         );
-      
+    }
+
     @GetMapping("/{reservationId}/cancellation-preview")
     @PreAuthorize("@authorizationService.isTenant() or @authorizationService.isLandlord() or @authorizationService.isAdmin()")
     public ResponseEntity<GenericResponse> previewCancellation(@PathVariable UUID reservationId) {

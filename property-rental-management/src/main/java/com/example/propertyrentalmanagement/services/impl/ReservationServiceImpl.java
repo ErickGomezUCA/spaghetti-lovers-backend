@@ -703,7 +703,8 @@ public class ReservationServiceImpl implements ReservationService {
         );
 
         return reservationsPage.map(ReservationResponse::fromEntity);
-      
+    }
+
     @Transactional(readOnly = true)
     public ReservationCancellationPreviewResponse previewCancellation(UUID reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
