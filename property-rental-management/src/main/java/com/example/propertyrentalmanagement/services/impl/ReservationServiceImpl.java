@@ -118,6 +118,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .timestampEnd(checkOutTime)
                 .blockType(BlockType.RESERVATION)
                 .reservation(reservation)
+                .blockedReason(tenant.getName())
                 .build();
         availabilityCalendarRepository.save(block);
 
@@ -593,11 +594,13 @@ public class ReservationServiceImpl implements ReservationService {
             );
         }
     }
+
     private BigDecimal calculateTotalFineAmount(List<Fine> fines) {
         return fines.stream()
                 .map(Fine::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
     private void markFinesAsResolved(List<Fine> fines) {
         LocalDateTime resolvedAt = LocalDateTime.now();
 
@@ -605,6 +608,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         fineRepository.saveAll(fines);
     }
+
     private void createAdditionalFinePayment(
             Reservation reservation,
             Payment guaranteeDepositPayment,
@@ -621,6 +625,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         paymentRepository.save(additionalFinePayment);
     }
+
     private void createCompletionNotification(
             Reservation reservation,
             BigDecimal refundAmount,
@@ -628,15 +633,15 @@ public class ReservationServiceImpl implements ReservationService {
     ) {
         String message = retainedAmount.compareTo(BigDecimal.ZERO) > 0
                 ? "Tu reserva en "
-                + reservation.getProperty().getTitle()
-                + " fue completada. Se retuvo $"
-                + retainedAmount.setScale(2, RoundingMode.HALF_UP)
-                + " del depósito de garantía por daños y se reembolsó $"
-                + refundAmount.setScale(2, RoundingMode.HALF_UP)
-                + "."
+                  + reservation.getProperty().getTitle()
+                  + " fue completada. Se retuvo $"
+                  + retainedAmount.setScale(2, RoundingMode.HALF_UP)
+                  + " del depósito de garantía por daños y se reembolsó $"
+                  + refundAmount.setScale(2, RoundingMode.HALF_UP)
+                  + "."
                 : "Tu reserva en "
-                + reservation.getProperty().getTitle()
-                + " fue completada. El depósito de garantía fue reembolsado completamente.";
+                  + reservation.getProperty().getTitle()
+                  + " fue completada. El depósito de garantía fue reembolsado completamente.";
 
         Notification notification = Notification.builder()
                 .user(reservation.getTenant())

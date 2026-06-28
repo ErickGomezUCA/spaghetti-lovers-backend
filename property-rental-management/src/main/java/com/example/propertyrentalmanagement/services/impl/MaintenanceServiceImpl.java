@@ -158,7 +158,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     .timestampEnd(scheduledEnd)
                     .blockType(BlockType.MAINTENANCE)
                     .maintenance(updatedMaintenance)
-                    .blockedReason("Mantenimiento: " + updatedMaintenance.getTitle())
+                    .blockedReason(updatedMaintenance.getTitle())
                     .build();
             availabilityCalendarRepository.save(calendarBlock);
         }
