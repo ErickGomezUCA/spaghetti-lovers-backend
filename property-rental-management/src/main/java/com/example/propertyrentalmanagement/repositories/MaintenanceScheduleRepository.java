@@ -24,4 +24,7 @@ public interface MaintenanceScheduleRepository extends JpaRepository<Maintenance
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    @Query("SELECT ms FROM MaintenanceSchedule ms WHERE ms.nextScheduledDate <= :now AND ms.status <> 'DONE'")
+    List<MaintenanceSchedule> findAllDueSchedules(@Param("now") LocalDateTime now);
 }
