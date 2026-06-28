@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import com.example.propertyrentalmanagement.dto.response.AccessCodeDetailResponse;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -118,34 +121,61 @@ public class AccessCodeServiceImpl implements AccessCodeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AccessCodeDetailResponse> getTenantAccessCodes() {
+    public Page<AccessCodeDetailResponse> getTenantAccessCodes(
+            int page,
+            int pageSize,
+            String sortBy,
+            String sortOrder
+    ) {
         AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
         if (currentUser.getRole() != UserRole.TENANT) {
             throw new NotResourceOwnerException("Only tenants can access tenant access codes");
         }
 
+        Pageable pageable = PaginationUtils.getPageRequest(
+                page,
+                pageSize,
+                sortBy,
+                sortOrder
+        );
+
         return accessCodeRepository
-                .findByReservation_Tenant_IdOrderByValidFromDesc(currentUser.getId())
-                .stream()
-                .filter(accessCode -> accessCode.getCodeType() == CodeType.ACCESS_CODE)
-                .map(AccessCodeDetailResponse::fromEntity)
-                .toList();
+                .findByReservation_Tenant_IdAndCodeType(
+                        currentUser.getId(),
+                        CodeType.ACCESS_CODE,
+                        pageable
+                )
+                .map(AccessCodeDetailResponse::fromEntity);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AccessCodeDetailResponse> getLandlordAccessCodes() {
+    public Page<AccessCodeDetailResponse> getLandlordAccessCodes(
+            int page,
+            int pageSize,
+            String sortBy,
+            String sortOrder
+    ) {
         AppUser currentUser = authenticatedUserProvider.getCurrentUser();
 
         if (currentUser.getRole() != UserRole.LANDLORD) {
             throw new NotResourceOwnerException("Only landlords can access landlord access codes");
         }
 
+        Pageable pageable = PaginationUtils.getPageRequest(
+                page,
+                pageSize,
+                sortBy,
+                sortOrder
+        );
+
         return accessCodeRepository
-                .findByReservation_Property_Landlord_IdOrderByValidFromDesc(currentUser.getId())
-                .stream()
-                .map(AccessCodeDetailResponse::fromEntity)
-                .toList();
+                .findByReservation_Property_Landlord_IdAndCodeType(
+                        currentUser.getId(),
+                        CodeType.ACCESS_CODE,
+                        pageable
+                )
+                .map(AccessCodeDetailResponse::fromEntity);
     }
 }

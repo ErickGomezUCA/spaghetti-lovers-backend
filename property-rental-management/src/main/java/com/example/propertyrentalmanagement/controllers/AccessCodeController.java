@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.example.propertyrentalmanagement.dto.response.PaginationMeta;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -20,12 +22,24 @@ public class AccessCodeController {
 
     @PreAuthorize("@authorizationService.isTenant()")
     @GetMapping("/tenant")
-    public ResponseEntity<GenericResponse> getTenantAccessCodes() {
-        List<AccessCodeDetailResponse> accessCodes = accessCodeService.getTenantAccessCodes();
+    public ResponseEntity<GenericResponse> getTenantAccessCodes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "validFrom") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<AccessCodeDetailResponse> accessCodes =
+                accessCodeService.getTenantAccessCodes(
+                        page,
+                        pageSize,
+                        sortBy,
+                        sortOrder
+                );
 
         return GenericResponse.builder()
                 .message("Tenant access codes retrieved successfully")
-                .data(accessCodes)
+                .data(accessCodes.getContent())
+                .pagination(PaginationMeta.fromPage(accessCodes))
                 .status(HttpStatus.OK)
                 .build()
                 .buildResponse();
@@ -33,12 +47,24 @@ public class AccessCodeController {
 
     @PreAuthorize("@authorizationService.isLandlord()")
     @GetMapping("/landlord")
-    public ResponseEntity<GenericResponse> getLandlordAccessCodes() {
-        List<AccessCodeDetailResponse> accessCodes = accessCodeService.getLandlordAccessCodes();
+    public ResponseEntity<GenericResponse> getLandlordAccessCodes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "validFrom") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder
+    ) {
+        Page<AccessCodeDetailResponse> accessCodes =
+                accessCodeService.getLandlordAccessCodes(
+                        page,
+                        pageSize,
+                        sortBy,
+                        sortOrder
+                );
 
         return GenericResponse.builder()
                 .message("Landlord access codes retrieved successfully")
-                .data(accessCodes)
+                .data(accessCodes.getContent())
+                .pagination(PaginationMeta.fromPage(accessCodes))
                 .status(HttpStatus.OK)
                 .build()
                 .buildResponse();
