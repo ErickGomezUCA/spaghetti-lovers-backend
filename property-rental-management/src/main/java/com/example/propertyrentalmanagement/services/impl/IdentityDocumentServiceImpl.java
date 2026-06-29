@@ -12,9 +12,9 @@ import com.example.propertyrentalmanagement.enums.UserRole;
 import com.example.propertyrentalmanagement.exceptions.ConflictException;
 import com.example.propertyrentalmanagement.exceptions.IdentityDocumentNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
+import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.repositories.IdentityDocumentRepository;
 import com.example.propertyrentalmanagement.repositories.NotificationRepository;
-import com.example.propertyrentalmanagement.repositories.AppUserRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.IdentityDocumentService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,8 +70,12 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
                     .map(admin -> Notification.builder()
                             .user(admin)
                             .type(NotificationType.INFO)
-                            .title("New Identity Verification Pending")
-                            .message("User " + lockedUser.getName() + " - " + lockedUser.getEmail() + " has submitted a new identity document for verification.")
+                            .title("Nueva verificación pendiente")
+                            .message("El usuario "
+                                    + lockedUser.getName()
+                                    + " - "
+                                    + lockedUser.getEmail()
+                                    + " subió un nuevo documento de identidad para revisión.")
                             .isRead(false)
                             .createdAt(LocalDateTime.now())
                             .build()
@@ -85,10 +90,6 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
     @Transactional
     public IdentityDocumentResponse reviewDocument(UUID documentId, ReviewIdentityDocumentRequest request) {
         AppUser currentAdmin = authenticatedUserProvider.getCurrentUser();
-
-        if (currentAdmin.getRole() != UserRole.ADMIN) {
-            throw new NotResourceOwnerException("Permission denied: Only administrators can review identity documents.");
-        }
 
         IdentityDocument document = identityDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new IdentityDocumentNotFoundException("Identity document not found."));
@@ -105,9 +106,14 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
         document.setReviewedBy(currentAdmin);
         identityDocumentRepository.save(document);
 
-        String statusMessage = request.documentStatus() == DocumentStatus.VERIFIED
-                ? "Your identity verification has been approved successfully."
-                : "Your identity verification was rejected. Please upload a valid document.";
+        String statusMessage;
+        if (request.documentStatus() == DocumentStatus.VERIFIED) {
+            statusMessage = "Your identity verification has been approved successfully.";
+        } else if (request.rejectionReason() != null && !request.rejectionReason().isBlank()) {
+            statusMessage = "Your identity verification was rejected. Reason: " + request.rejectionReason();
+        } else {
+            statusMessage = "Your identity verification was rejected. Please upload a valid document.";
+        }
 
         Notification notification = Notification.builder()
                 .user(document.getUser())
@@ -121,5 +127,16 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
         notificationRepository.save(notification);
 
         return IdentityDocumentResponse.fromEntity(document);
+    }
+
+    @Override
+    public List<IdentityDocumentResponse> getAllDocuments(DocumentStatus status) {
+        List<IdentityDocument> documents = (status != null)
+                ? identityDocumentRepository.findByDocumentStatus(status)
+                : identityDocumentRepository.findAll();
+
+        return documents.stream()
+                .map(IdentityDocumentResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 }

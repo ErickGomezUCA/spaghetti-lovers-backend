@@ -5,39 +5,47 @@ import com.example.propertyrentalmanagement.enums.ReservationStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ReservationResponse(
         UUID id,
-        UUID propertyId,
-        UUID tenantId,
+        String propertyName,
+        String propertyCity,
+        String propertyDepartment,
+        String propertyImage,
+        String tenantName,
+        String tenantEmail,
+        String landlordName,
         LocalDate checkInDate,
         LocalDate checkOutDate,
-        int guestsCount,
         int totalNights,
-        BigDecimal baseTotal,
-        BigDecimal cleaningFee,
-        BigDecimal longStayDiscount,
+        int guestsCount,
         BigDecimal totalPrice,
-        ReservationStatus reservationStatus,
-        LocalDateTime createdAt
+        ReservationStatus reservationStatus
 ) {
     public static ReservationResponse fromEntity(Reservation reservation) {
+
+        String imageUrl = null;
+        if (reservation.getProperty().getPhotos() != null && !reservation.getProperty().getPhotos().isEmpty()) {
+            imageUrl = reservation.getProperty().getPhotos().get(0).getUrl();
+        }
+
+
         return new ReservationResponse(
                 reservation.getId(),
-                reservation.getProperty().getId(),
-                reservation.getTenant().getId(),
+                reservation.getProperty().getTitle(),
+                reservation.getProperty().getCity(),
+                reservation.getProperty().getDepartment(),
+                imageUrl,
+                reservation.getTenant().getName(),
+                reservation.getTenant().getEmail(),
+                reservation.getProperty().getLandlord().getName(),
                 reservation.getCheckInDate(),
                 reservation.getCheckOutDate(),
-                reservation.getGuestsCount(),
                 reservation.getTotalNights(),
-                reservation.getBaseTotal(),
-                reservation.getCleaningFee(),
-                reservation.getLongStayDiscount(),
+                reservation.getGuestsCount(),
                 reservation.getTotalPrice(),
-                reservation.getReservationStatus(),
-                reservation.getCreatedAt()
+                reservation.getReservationStatus()
         );
     }
 }

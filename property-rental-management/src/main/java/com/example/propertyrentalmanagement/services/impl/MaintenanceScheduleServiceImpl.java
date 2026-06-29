@@ -30,14 +30,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
 public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleService {
+    private static final Logger log = Logger.getLogger(MaintenanceScheduleServiceImpl.class.getName());
+
     private final MaintenanceScheduleRepository maintenanceScheduleRepository;
     private final AppUserRepository appUserRepository;
     private final PropertyRepository propertyRepository;
@@ -75,60 +79,71 @@ public class MaintenanceScheduleServiceImpl implements MaintenanceScheduleServic
 
     @Override
     public void startMaintenanceSchedule(UUID id) {
-        MaintenanceSchedule maintenanceScheduleFound = maintenanceScheduleRepository.findById(id)
+        MaintenanceSchedule schedule = maintenanceScheduleRepository.findById(id)
                 .orElseThrow(() -> new MaintenanceScheduleNotFoundException("Maintenance schedule not found"));
 
         AppUser authUser = authProvider.getCurrentUser();
-
-        if (!maintenanceScheduleFound.getProperty().getLandlord().getId().equals(authUser.getId())) {
+        if (!schedule.getProperty().getLandlord().getId().equals(authUser.getId())) {
             throw new NotResourceOwnerException("User is not the landlord of the property");
         }
 
+        processSchedule(schedule);
+    }
+
+    @Override
+    @Transactional
+    public void runDueSchedules() {
+        List<MaintenanceSchedule> due = maintenanceScheduleRepository.findAllDueSchedules(LocalDateTime.now());
+        log.info("Maintenance schedule cron: found " + due.size() + " due schedule(s).");
+        for (MaintenanceSchedule schedule : due) {
+            try {
+                processSchedule(schedule);
+                log.info("Triggered maintenance schedule: " + schedule.getId());
+            } catch (Exception e) {
+                log.severe("Failed to trigger maintenance schedule " + schedule.getId() + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private void processSchedule(MaintenanceSchedule schedule) {
         Maintenance maintenance = Maintenance.builder()
-                .property(maintenanceScheduleFound.getProperty())
-                .reportedBy(maintenanceScheduleFound.getScheduledBy())
-                .title(maintenanceScheduleFound.getTitle())
-                .description(maintenanceScheduleFound.getDescription())
+                .property(schedule.getProperty())
+                .reportedBy(schedule.getScheduledBy())
+                .title(schedule.getTitle())
+                .description(schedule.getDescription())
                 .urgency(Urgency.LOW)
                 .maintenanceStatus(MaintenanceStatus.SCHEDULED)
                 .build();
-
         Maintenance savedMaintenance = maintenanceRepository.save(maintenance);
 
-        LocalDateTime blockStart = maintenanceScheduleFound.getNextScheduledDate();
+        LocalDateTime blockStart = schedule.getNextScheduledDate();
         LocalDateTime blockEnd = blockStart.plusDays(1);
-        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
-                maintenanceScheduleFound.getProperty().getId(), blockStart, blockEnd);
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository
+                .findOverlappingBlocks(schedule.getProperty().getId(), blockStart, blockEnd);
         if (overlaps.isEmpty()) {
-            AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
-                    .property(maintenanceScheduleFound.getProperty())
+            availabilityCalendarRepository.save(AvailabilityCalendar.builder()
+                    .property(schedule.getProperty())
                     .timestampStart(blockStart)
                     .timestampEnd(blockEnd)
                     .blockType(BlockType.PREVENTIVE_MAINTENANCE)
                     .maintenance(savedMaintenance)
-                    .blockedReason("Mantenimiento preventivo: " + maintenanceScheduleFound.getTitle())
-                    .build();
-            availabilityCalendarRepository.save(calendarBlock);
+                    .blockedReason("Mantenimiento preventivo: " + schedule.getTitle())
+                    .build());
         }
 
-        Notification scheduleNotification = Notification.builder()
-                .user(maintenanceScheduleFound.getScheduledBy())
+        notificationRepository.save(Notification.builder()
+                .user(schedule.getScheduledBy())
                 .type(NotificationType.MAINTENANCE)
                 .title("Mantenimiento preventivo activado")
-                .message("El mantenimiento preventivo \"" + maintenanceScheduleFound.getTitle() + "\" ha sido iniciado.")
+                .message("El mantenimiento preventivo \"" + schedule.getTitle() + "\" ha sido iniciado.")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
-                .build();
-        notificationRepository.save(scheduleNotification);
+                .build());
 
-        maintenanceScheduleFound.setLastCompletedAt(LocalDateTime.now());
-        maintenanceScheduleFound.setNextScheduledDate(calculateNextScheduledDate(
-                maintenanceScheduleFound.getNextScheduledDate(),
-                maintenanceScheduleFound.getFrequency(),
-                maintenanceScheduleFound.getInterval()
-        ));
-
-        maintenanceScheduleRepository.save(maintenanceScheduleFound);
+        schedule.setLastCompletedAt(LocalDateTime.now());
+        schedule.setNextScheduledDate(calculateNextScheduledDate(
+                schedule.getNextScheduledDate(), schedule.getFrequency(), schedule.getInterval()));
+        maintenanceScheduleRepository.save(schedule);
     }
 
     @Override

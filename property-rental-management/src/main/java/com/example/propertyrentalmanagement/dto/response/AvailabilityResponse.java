@@ -13,6 +13,7 @@ public record AvailabilityResponse (
 ) {
     public record ConflictResponse(
             UUID id,
+            UUID propertyId,
             BlockType blockType,
             LocalDateTime timestampStart,
             LocalDateTime timestampEnd,
@@ -21,6 +22,7 @@ public record AvailabilityResponse (
         public static ConflictResponse fromEntity(AvailabilityCalendar calendar) {
             return new ConflictResponse(
                     calendar.getId(),
+                    calendar.getProperty().getId(),
                     calendar.getBlockType(),
                     calendar.getTimestampStart(),
                     calendar.getTimestampEnd(),

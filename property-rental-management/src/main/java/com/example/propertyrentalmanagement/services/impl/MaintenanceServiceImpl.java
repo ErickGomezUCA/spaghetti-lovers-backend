@@ -5,18 +5,11 @@ import com.example.propertyrentalmanagement.dto.request.CreateMaintenanceRequest
 import com.example.propertyrentalmanagement.dto.request.ResolveMaintenanceRequest;
 import com.example.propertyrentalmanagement.dto.response.MaintenanceResponse;
 import com.example.propertyrentalmanagement.entitites.*;
-import com.example.propertyrentalmanagement.enums.BlockType;
-import com.example.propertyrentalmanagement.enums.MaintenancePhotoType;
-import com.example.propertyrentalmanagement.enums.MaintenanceStatus;
-import com.example.propertyrentalmanagement.enums.NotificationType;
-import com.example.propertyrentalmanagement.enums.UserRole;
+import com.example.propertyrentalmanagement.enums.*;
+import com.example.propertyrentalmanagement.exceptions.CalendarConflictException;
 import com.example.propertyrentalmanagement.exceptions.MaintenanceNotFoundException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
-import com.example.propertyrentalmanagement.repositories.AvailabilityCalendarRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenancePhotoRepository;
-import com.example.propertyrentalmanagement.repositories.MaintenanceRepository;
-import com.example.propertyrentalmanagement.repositories.NotificationRepository;
-import com.example.propertyrentalmanagement.repositories.ReservationRepository;
+import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.MaintenanceService;
 import com.example.propertyrentalmanagement.utils.PaginationUtils;
@@ -35,14 +28,14 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class MaintenanceServiceImpl implements MaintenanceService {
+    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private final MaintenanceRepository maintenanceRepository;
     private final MaintenancePhotoRepository maintenancePhotoRepository;
     private final ReservationRepository reservationRepository;
     private final AvailabilityCalendarRepository availabilityCalendarRepository;
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authProvider;
-
-    private static final DateTimeFormatter HTML_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+    private final AppUserRepository appUserRepository;
 
     @Override
     public MaintenanceResponse createMaintenance(CreateMaintenanceRequest maintenanceRequest) {
@@ -59,7 +52,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         Maintenance maintenance = Maintenance.builder()
-                .property(property) // TODO: Remove property? It can be fetched from reservation either way
+                .property(property)
                 .reservation(reservationFound)
                 .reportedBy(authUser)
                 .title(maintenanceRequest.title())
@@ -70,6 +63,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         Maintenance createdMaintenance = maintenanceRepository.save(maintenance);
 
+        List<String> savedPhotoUrls = List.of();
         if (maintenanceRequest.photoUrls() != null && !maintenanceRequest.photoUrls().isEmpty()) {
             List<MaintenancePhoto> photos = maintenanceRequest.photoUrls().stream()
                     .filter(Objects::nonNull)
@@ -84,20 +78,75 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             if (!photos.isEmpty()) {
                 maintenancePhotoRepository.saveAll(photos);
+                savedPhotoUrls = photos.stream().map(MaintenancePhoto::getUrl).toList();
             }
         }
 
         Notification createNotification = Notification.builder()
                 .user(property.getLandlord())
                 .type(NotificationType.MAINTENANCE)
-                .title("Nueva solicitud de mantenimiento")
-                .message("Nueva solicitud: \"" + maintenanceRequest.title() + "\" con urgencia " + maintenanceRequest.urgency() + ".")
+                .title(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Solicitud de mantenimiento crítico"
+                                : "Nueva solicitud de mantenimiento"
+                )
+                .message(
+                        maintenanceRequest.urgency().name().equals("CRITICAL")
+                                ? "Se ha reportado un problema urgente en "
+                                + property.getTitle()
+                                + ": "
+                                + maintenanceRequest.title()
+                                + "."
+                                : "Nueva solicitud: \""
+                                + maintenanceRequest.title()
+                                + "\" con urgencia "
+                                + maintenanceRequest.urgency()
+                                + "."
+                )
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
+
         notificationRepository.save(createNotification);
 
-        return MaintenanceResponse.fromEntity(createdMaintenance);
+        if (maintenanceRequest.urgency().name().equals("CRITICAL")) {
+            List<AppUser> admins = appUserRepository.findByRole(UserRole.ADMIN);
+
+            if (!admins.isEmpty()) {
+                List<Notification> adminNotifications = admins.stream()
+                        .map(admin -> Notification.builder()
+                                .user(admin)
+                                .type(NotificationType.MAINTENANCE)
+                                .title("Mantenimiento crítico reportado")
+                                .message("Se reportó un mantenimiento crítico en "
+                                        + property.getTitle()
+                                        + ": \""
+                                        + maintenanceRequest.title()
+                                        + "\".")
+                                .isRead(false)
+                                .createdAt(LocalDateTime.now())
+                                .build())
+                        .toList();
+
+                notificationRepository.saveAll(adminNotifications);
+            }
+        }
+
+        // Using this pattern to include photosUrl on response
+        return new MaintenanceResponse(
+                createdMaintenance.getId(),
+                property.getId(),
+                reservationFound.getId(),
+                authUser.getId(),
+                createdMaintenance.getTitle(),
+                createdMaintenance.getDescription(),
+                createdMaintenance.getUrgency(),
+                createdMaintenance.getResolutionNotes(),
+                createdMaintenance.getScheduledStart(),
+                createdMaintenance.getScheduledEnd(),
+                createdMaintenance.getMaintenanceStatus(),
+                savedPhotoUrls
+        );
     }
 
     @Override
@@ -147,25 +196,28 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         LocalDateTime scheduledStart = LocalDateTime.parse(confirmMaintenanceRequest.scheduledStart(), HTML_DATETIME);
         LocalDateTime scheduledEnd = LocalDateTime.parse(confirmMaintenanceRequest.scheduledEnd(), HTML_DATETIME);
 
+        List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
+                maintenanceFound.getProperty().getId(), scheduledStart, scheduledEnd);
+
+        if (!overlaps.isEmpty()) {
+            throw new CalendarConflictException("El rango de fechas seleccionado ya está ocupado por otro evento en el calendario.");
+        }
+
         maintenanceFound.setScheduledStart(scheduledStart);
         maintenanceFound.setScheduledEnd(scheduledEnd);
         maintenanceFound.setMaintenanceStatus(MaintenanceStatus.RESOLVING);
         Maintenance updatedMaintenance = maintenanceRepository.save(maintenanceFound);
 
         if (confirmMaintenanceRequest.blockCalendar()) {
-            List<AvailabilityCalendar> overlaps = availabilityCalendarRepository.findOverlappingBlocks(
-                    updatedMaintenance.getProperty().getId(), scheduledStart, scheduledEnd);
-            if (overlaps.isEmpty()) {
-                AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
-                        .property(updatedMaintenance.getProperty())
-                        .timestampStart(scheduledStart)
-                        .timestampEnd(scheduledEnd)
-                        .blockType(BlockType.MAINTENANCE)
-                        .maintenance(updatedMaintenance)
-                        .blockedReason("Mantenimiento: " + updatedMaintenance.getTitle())
-                        .build();
-                availabilityCalendarRepository.save(calendarBlock);
-            }
+            AvailabilityCalendar calendarBlock = AvailabilityCalendar.builder()
+                    .property(updatedMaintenance.getProperty())
+                    .timestampStart(scheduledStart)
+                    .timestampEnd(scheduledEnd)
+                    .blockType(BlockType.MAINTENANCE)
+                    .maintenance(updatedMaintenance)
+                    .blockedReason(updatedMaintenance.getTitle())
+                    .build();
+            availabilityCalendarRepository.save(calendarBlock);
         }
 
         Notification confirmNotification = Notification.builder()
