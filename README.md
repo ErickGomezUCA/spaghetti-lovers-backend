@@ -378,13 +378,38 @@ Gestiona las notificaciones generadas por el sistema para informar a los usuario
 
 ### Documentos de identidad
 
-<!-- TODO -->
+Gestiona el proceso de verificación de identidad de propietarios e inquilinos.
+
+**Endpoint:** `/api/identity-documents`
+
+**Entidad:** `IdentityDocument`: almacena el usuario asociado, la URL del documento (alojado en Cloudinary), el estado actual (`PENDING`, `VERIFIED`, `REJECTED`), fechas de creación y revisión, el administrador que realizó la revisión y el motivo en caso de rechazo.
+
+**Acciones:**
+- Subida de documentos (DUI, Pasaporte o Licencia) por parte de tenants y landlords mediante URL de Cloudinary.
+- Restricción de un único registro por usuario: si un documento es rechazado, el usuario actualiza su registro existente en lugar de duplicarlo.
+- Consulta del estado de verificación en tiempo real del usuario autenticado (`/me`).
+- Panel de revisión exclusivo para el rol `ADMIN` con listado filtrable por estado.
+- Aprobación o rechazo de documentos por parte del administrador, requiriendo un motivo obligatorio en caso de rechazo.
+- Notificaciones automáticas a los administradores al recibir un nuevo documento, y al usuario cuando su documento es verificado o rechazado.
 
 ---
 
 ### Multas
 
-<!-- TODO -->
+Gestiona la emisión, seguimiento y cobro de penalizaciones aplicadas a los inquilinos por incumplimientos durante o después de su estadía.
+
+**Endpoint:** `/api/fines`
+
+**Entidad:** `Fine`: almacena la reserva afectada, el usuario que emite la multa (landlord o admin), el tipo de infracción (`PROPERTY_DAMAGE`, `NOISE_VIOLATION`, `LATE_CHECKOUT`, `LATE_PAYMENT`), monto, descripción detallada, fechas de emisión y resolución, y el pago (`Payment`) asociado.
+
+**Acciones:**
+- Emisión de multas por parte de landlords o admins hacia los inquilinos.
+- Validaciones estrictas por tipo de multa (ej. ruido o check-out tardío solo aplican a reservas `ACTIVE`; daños a la propiedad aplican a `ACTIVE` o `COMPLETED`).
+- Consulta paginada del historial de multas propias para el tenant, separando visualmente las pendientes de las pagadas.
+- Dashboard completo para el landlord con KPIs dinámicos (cantidad total, multas pendientes, monto por cobrar y monto cobrado).
+- Listado paginado para el landlord con filtros avanzados por término de búsqueda, tipo de multa y estado de resolución.
+- Pago de multas por parte del inquilino, actualizando el estado de resolución y la información del pago.
+- Generación de notificaciones automáticas al inquilino cuando se emite una multa y al propietario cuando esta es pagada.
 
 ---
 
