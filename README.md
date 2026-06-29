@@ -87,6 +87,75 @@ Registra la autenticación en el SecurityContextHolder.
 
 Esto permite que el backend reconozca al usuario autenticado durante toda la ejecución del request.
 
+3. Security Configuration
+
+La clase SecurityConfig define la configuración principal de seguridad del backend.
+
+Entre sus responsabilidades se encuentran:
+
+Habilitar CORS.
+Desactivar CSRF, ya que la API usa JWT y no sesiones tradicionales.
+Configurar la aplicación como stateless.
+Definir endpoints públicos.
+Proteger el resto de endpoints.
+Registrar el filtro JWT.
+Configurar respuestas personalizadas para errores 401 Unauthorized y 403 Forbidden.
+
+4. Endpoints públicos
+
+Algunos endpoints están disponibles sin autenticación. Estos se configuran en SecurityConfig.
+
+Los endpoints públicos principales son:
+
+POST /api/users/register
+POST /api/users/login
+
+5. Endpoints protegidos
+
+Todos los demás endpoints requieren autenticación:
+
+.anyRequest().authenticated()
+
+Esto significa que cualquier request que no esté explícitamente marcado como público debe incluir un JWT válido.
+
+Si el usuario no envía token, envía un token inválido o el token expiró, el backend responde con:
+
+401 Unauthorized
+
+6. Authorization
+
+El sistema maneja tres roles principales:
+
+ADMIN
+LANDLORD
+TENANT
+
+La autorización se implementa usando @PreAuthorize junto con la clase AuthorizationService.
+
+Para habilitar estas validaciones por método, SecurityConfig usa:
+
+@EnableMethodSecurity
+
+Esto permite proteger endpoints específicos directamente en los controllers.
+
+7. AuthorizationService
+
+La clase AuthorizationService centraliza las validaciones de permisos por rol y por usuario autenticado.
+
+Incluye métodos como:
+
+public boolean isAdmin()
+public boolean isLandlord()
+public boolean isTenant()
+public boolean isCurrentUser(UUID userId)
+public boolean isAdminOrCurrentUser(UUID userId)
+
+Estos métodos consultan al usuario autenticado mediante AuthenticatedUserProvider y verifican si cumple con la condición requerida.
+
+8. Password Encoder
+
+Las contraseñas no se almacenan en texto plano. El sistema usa BCryptPasswordEncoder para encriptar las contraseñas.
+
 ---
 
 ## Modulos
