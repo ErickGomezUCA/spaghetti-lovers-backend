@@ -293,7 +293,24 @@ Gestiona el ciclo completo de reservas realizadas por tenants sobre las propieda
 
 ### Notificaciones
 
-<!-- TODO -->
+Gestiona las notificaciones generadas por el sistema para informar a los usuarios sobre eventos importantes relacionados con reservas, contratos, mantenimiento, calificaciones, códigos de acceso y acciones administrativas.
+
+**Endpoint:** /api/notifications
+
+**Entidad:** Notification: almacena el usuario destinatario, tipo de notificación, título, mensaje, estado de lectura, fecha de creación y reserva asociada cuando aplica.
+
+**Acciones:**
+
+-Consulta paginada de notificaciones del usuario autenticado.
+-Filtro de notificaciones no leídas mediante el parámetro unreadOnly.
+-Conteo de notificaciones no leídas para mostrar indicadores en la interfaz.
+-Marcado de una notificación específica como leída.
+-Marcado de todas las notificaciones del usuario como leídas.
+-Eliminación de notificaciones propias.
+-Generación de notificaciones para tenants, landlords y admins según eventos del sistema.
+-Notificación a tenants sobre reservas confirmadas, contratos pendientes de firma, códigos de acceso generados y actualizaciones de mantenimiento.
+-Notificación a landlords sobre nuevas reservas, cancelaciones, contratos firmados, mantenimientos críticos y nuevas calificaciones.
+-Notificación a admins sobre registros de usuarios, documentos pendientes de verificación y mantenimientos críticos.
 
 ---
 
