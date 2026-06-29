@@ -277,17 +277,17 @@ Gestiona el ciclo completo de reservas realizadas por tenants sobre las propieda
 
 **Acciones:**
 
--Creación de reservas por parte de tenants sobre propiedades disponibles.
--Validación de disponibilidad de la propiedad en el rango de fechas seleccionado.
--Consulta paginada de reservas propias para tenants.
--Consulta paginada de reservas asociadas a propiedades de un landlord.
--Consulta de detalle de una reserva específica.
--Extensión de reservas activas o reservadas, validando disponibilidad y generando el pago adicional correspondiente.
--Vista previa de cancelación con cálculo de penalización y montos de reembolso.
--Cancelación de reservas aplicando la política de penalización según la cercanía del check-in.
--Finalización de reservas por parte del landlord o administrador.
--Actualización automática de estado de reservas mediante procesos programados.
--Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaciones.
+- Creación de reservas por parte de tenants sobre propiedades disponibles.
+- Validación de disponibilidad de la propiedad en el rango de fechas seleccionado.
+- Consulta paginada de reservas propias para tenants.
+- Consulta paginada de reservas asociadas a propiedades de un landlord.
+- Consulta de detalle de una reserva específica.
+- Extensión de reservas activas o reservadas, validando disponibilidad y generando el pago adicional correspondiente.
+- Vista previa de cancelación con cálculo de penalización y montos de reembolso.
+- Cancelación de reservas aplicando la política de penalización según la cercanía del check-in.
+- Finalización de reservas por parte del landlord o administrador.
+- Actualización automática de estado de reservas mediante procesos programados.
+- Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaciones.
 
 ---
 
@@ -301,16 +301,16 @@ Gestiona las notificaciones generadas por el sistema para informar a los usuario
 
 **Acciones:**
 
--Consulta paginada de notificaciones del usuario autenticado.
--Filtro de notificaciones no leídas mediante el parámetro unreadOnly.
--Conteo de notificaciones no leídas para mostrar indicadores en la interfaz.
--Marcado de una notificación específica como leída.
--Marcado de todas las notificaciones del usuario como leídas.
--Eliminación de notificaciones propias.
--Generación de notificaciones para tenants, landlords y admins según eventos del sistema.
--Notificación a tenants sobre reservas confirmadas, contratos pendientes de firma, códigos de acceso generados y actualizaciones de mantenimiento.
--Notificación a landlords sobre nuevas reservas, cancelaciones, contratos firmados, mantenimientos críticos y nuevas calificaciones.
--Notificación a admins sobre registros de usuarios, documentos pendientes de verificación y mantenimientos críticos.
+- Consulta paginada de notificaciones del usuario autenticado.
+- Filtro de notificaciones no leídas mediante el parámetro unreadOnly.
+- Conteo de notificaciones no leídas para mostrar indicadores en la interfaz.
+- Marcado de una notificación específica como leída.
+- Marcado de todas las notificaciones del usuario como leídas.
+- Eliminación de notificaciones propias.
+- Generación de notificaciones para tenants, landlords y admins según eventos del sistema.
+- Notificación a tenants sobre reservas confirmadas, contratos pendientes de firma, códigos de acceso generados y actualizaciones de mantenimiento.
+- Notificación a landlords sobre nuevas reservas, cancelaciones, contratos firmados, mantenimientos críticos y nuevas calificaciones.
+- Notificación a admins sobre registros de usuarios, documentos pendientes de verificación y mantenimientos críticos.
 
 ---
 
@@ -336,14 +336,14 @@ Gestiona los códigos de acceso generados para que los tenants puedan ingresar a
 
 **Acciones:**
 
--Generación automática de códigos de acceso al crear o confirmar una reserva.
--Consulta de códigos de acceso por parte del tenant.
--Consulta de códigos asociados a propiedades de un landlord.
--Visualización del estado del código: ACTIVE, PENDING, EXPIRED o INACTIVE.
--Validación de vigencia del código según las fechas de check-in y check-out de la reserva.
--Invalidación automática o manual de códigos cuando una reserva es cancelada o deja de estar vigente.
--Extensión de la vigencia del código cuando una reserva es extendida.
--Listado paginado de códigos de acceso para mejorar el manejo de múltiples reservas.
+- Generación automática de códigos de acceso al crear o confirmar una reserva.
+- Consulta de códigos de acceso por parte del tenant.
+- Consulta de códigos asociados a propiedades de un landlord.
+- Visualización del estado del código: ACTIVE, PENDING, EXPIRED o INACTIVE.
+- Validación de vigencia del código según las fechas de check-in y check-out de la reserva.
+- Invalidación automática o manual de códigos cuando una reserva es cancelada o deja de estar vigente.
+- Extensión de la vigencia del código cuando una reserva es extendida.
+- Listado paginado de códigos de acceso para mejorar el manejo de múltiples reservas.
 
 ---
 
