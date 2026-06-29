@@ -48,7 +48,44 @@ Carpeta inicial: `com.example.propertyrentalmanagement`
 
 ## Aspectos de seguridad
 
-<!-- TODO: Describir configuracion de autenticacion y autorizacion -->
+El backend implementa un esquema de seguridad basado en Spring Security y JWT (JSON Web Token). Este mecanismo permite autenticar usuarios mediante credenciales y proteger los endpoints de la API según el rol del usuario autenticado.
+
+1. Authentication
+
+La autenticación permite verificar la identidad de un usuario. En el sistema, los usuarios pueden autenticarse mediante el endpoint de login:
+
+POST /api/users/login
+
+Cuando las credenciales son correctas, el backend genera un token JWT que contiene información básica del usuario, como:
+
+Identificador del usuario.
+Correo electrónico.
+Rol del usuario.
+Fecha de emisión.
+Fecha de expiración.
+
+El token es generado por la clase JwtService, que se encarga de construir, firmar, validar y leer los datos almacenados dentro del JWT.
+
+Una vez generado el token, el frontend debe enviarlo en cada request protegido usando el header:
+
+Authorization: Bearer <token>
+
+2. JWT Authentication Filter
+
+La clase JwtAuthenticationFilter se ejecuta antes del filtro estándar de autenticación de Spring Security. Su responsabilidad es interceptar cada request entrante y verificar si contiene un token JWT válido.
+
+El filtro realiza los siguientes pasos:
+
+Lee el header Authorization.
+Verifica que el header empiece con Bearer.
+Extrae el token.
+Obtiene el ID del usuario desde el token.
+Busca el usuario en la base de datos.
+Valida que el token pertenezca al usuario y que no esté expirado.
+Crea un objeto CustomUserDetails.
+Registra la autenticación en el SecurityContextHolder.
+
+Esto permite que el backend reconozca al usuario autenticado durante toda la ejecución del request.
 
 ---
 
