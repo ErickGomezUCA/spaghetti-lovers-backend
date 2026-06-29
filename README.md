@@ -247,7 +247,7 @@ Gestiona las calificaciones que los usuarios se otorgan entre sí al finalizar u
 
 Permite a landlords y administradores analizar el rendimiento de propiedades en un período de tiempo determinado, visualizando métricas de ocupación, ingresos y reservas a través de KPIs y gráficos comparativas.
 
-**Endpoints:** `GET /api/properties/:propertyId/report` · `GET /api/properties/report`
+**Endpoints:** `/api/properties/:propertyId/report` · `/api/properties/report`
 
 **Entidades involucradas:** `Reservation`: fuente de las métricas de ocupación, noches ocupadas y totales base. `Payment`: fuente del ingreso real (`revenue.total`), sumando únicamente pagos de tipo `RESERVATION` y `EXTENSION`. `Property`: provee el título de la propiedad y la relación con el landlord. `AppUser`: permite al Admin filtrar por landlord específico mediante `GET /api/users/landlords`.
 
@@ -266,7 +266,7 @@ Permite a landlords y administradores analizar el rendimiento de propiedades en 
 
 Permite al landlord visualizar en una vista de calendario mensual todos los bloqueos activos de una propiedad, incluyendo reservas confirmadas y mantenimientos programados, manteniendo sincronización automática con el estado real de la propiedad.
 
-**Endpoint:** `GET /api/properties/:propertyId/availability`
+**Endpoint:** `/api/properties/:propertyId/availability`
 
 **Entidades involucradas:** `AvailabilityCalendar`: fuente de verdad de todos los bloqueos de la propiedad, clasificados por tipo (`RESERVATION`, `MAINTENANCE`, `PREVENTIVE_MAINTENANCE`), con referencia a la reserva o mantenimiento que generó el bloqueo. `Property`: provee la lista de propiedades del landlord para el selector del calendario. `Maintenance` y `Reservation`: generan y eliminan registros en `AvailabilityCalendar` automáticamente según su ciclo de vida.
 
