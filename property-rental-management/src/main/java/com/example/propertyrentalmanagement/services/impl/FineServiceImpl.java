@@ -13,7 +13,10 @@ import com.example.propertyrentalmanagement.enums.PaymentType;
 import com.example.propertyrentalmanagement.exceptions.BadRequestException;
 import com.example.propertyrentalmanagement.exceptions.NotResourceOwnerException;
 import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundException;
-import com.example.propertyrentalmanagement.repositories.*;
+import com.example.propertyrentalmanagement.repositories.FineRepository;
+import com.example.propertyrentalmanagement.repositories.NotificationRepository;
+import com.example.propertyrentalmanagement.repositories.PaymentRepository;
+import com.example.propertyrentalmanagement.repositories.ReservationRepository;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.FineService;
 import com.example.propertyrentalmanagement.utils.PaginationUtils;
@@ -25,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -85,7 +87,7 @@ public class FineServiceImpl implements FineService {
         Payment payment = Payment.builder()
                 .paymentType(PaymentType.FINE)
                 .amount(request.amount())
-                .paymentMethod(PaymentMethod.PENDING)
+                .paymentMethod(PaymentMethod.CARD)
                 .reservation(reservation)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -136,8 +138,8 @@ public class FineServiceImpl implements FineService {
         }
 
         Payment payment = fine.getPayment();
-        if (request.paymentMethod() == PaymentMethod.PENDING) {
-            throw new BadRequestException("A valid (non-pending) payment method is required.");
+        if (request.paymentMethod() == null || request.paymentMethod() == PaymentMethod.PENDING) {
+            throw new BadRequestException("A valid payment method is required.");
         }
         payment.setPaymentMethod(request.paymentMethod());
         payment.setRefundAmount(java.math.BigDecimal.ZERO);

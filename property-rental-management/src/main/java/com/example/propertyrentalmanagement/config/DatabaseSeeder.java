@@ -235,10 +235,52 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .filter(u -> u.getRole() == UserRole.TENANT)
                 .toList();
 
+        // Guaranteed: 3 ACTIVE reservations per tenant within this week (Jun 25 – Jul 1, 2026)
+        LocalDate[][] weekSlots = {
+                {LocalDate.of(2026, 6, 25), LocalDate.of(2026, 6, 27)},
+                {LocalDate.of(2026, 6, 26), LocalDate.of(2026, 6, 29)},
+                {LocalDate.of(2026, 6, 28), LocalDate.of(2026, 7, 1)},
+        };
+
+        int propIndex = 0;
+        for (AppUser tenant : tenants) {
+            for (LocalDate[] slot : weekSlots) {
+                LocalDate checkIn = slot[0];
+                LocalDate checkOut = slot[1];
+                int totalNights = (int) (checkOut.toEpochDay() - checkIn.toEpochDay());
+                Property prop = properties.get(propIndex % properties.size());
+                propIndex++;
+
+                BigDecimal baseTotal = prop.getBasePricePerNight().multiply(BigDecimal.valueOf(totalNights));
+                BigDecimal cleaningFee = prop.getCleaningFee();
+                LocalDateTime createdAt = checkIn.minusDays(5).atStartOfDay();
+
+                reservations.add(Reservation.builder()
+                        .property(prop)
+                        .tenant(tenant)
+                        .checkInDate(checkIn)
+                        .checkOutDate(checkOut)
+                        .totalNights(totalNights)
+                        .baseTotal(baseTotal)
+                        .cleaningFee(cleaningFee)
+                        .totalPrice(baseTotal.add(cleaningFee))
+                        .guestsCount(Math.max(1, faker.number().numberBetween(1, Math.max(2, prop.getMaxGuests()))))
+                        .reservationStatus(ReservationStatus.ACTIVE)
+                        .createdAt(createdAt)
+                        .updatedAt(createdAt)
+                        .build());
+            }
+        }
+
+        // Additional random reservations (PENDING excluded from random status pool)
+        ReservationStatus[] randomStatuses = {
+                ReservationStatus.RESERVED, ReservationStatus.ACTIVE,
+                ReservationStatus.COMPLETED, ReservationStatus.CANCELLED
+        };
         for (int i = 0; i < 50; i++) {
             AppUser randomTenant = tenants.get(random.nextInt(tenants.size()));
             Property randomProperty = properties.get(random.nextInt(properties.size()));
-            ReservationStatus randomStatus = ReservationStatus.values()[random.nextInt(ReservationStatus.values().length)];
+            ReservationStatus randomStatus = randomStatuses[random.nextInt(randomStatuses.length)];
 
             int daysToAdd = faker.number().numberBetween(-30, 60);
             LocalDate checkIn = LocalDate.now().plusDays(daysToAdd);
@@ -249,9 +291,8 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             BigDecimal baseTotal = randomProperty.getBasePricePerNight().multiply(BigDecimal.valueOf(totalNights));
             BigDecimal cleaningFee = randomProperty.getCleaningFee();
-            BigDecimal totalPrice = baseTotal.add(cleaningFee);
 
-            Reservation reservation = Reservation.builder()
+            reservations.add(Reservation.builder()
                     .property(randomProperty)
                     .tenant(randomTenant)
                     .checkInDate(checkIn)
@@ -259,14 +300,12 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .totalNights(totalNights)
                     .baseTotal(baseTotal)
                     .cleaningFee(cleaningFee)
-                    .totalPrice(totalPrice)
-                    .guestsCount(faker.number().numberBetween(1, randomProperty.getMaxGuests()))
+                    .totalPrice(baseTotal.add(cleaningFee))
+                    .guestsCount(Math.max(1, faker.number().numberBetween(1, Math.max(2, randomProperty.getMaxGuests()))))
                     .reservationStatus(randomStatus)
                     .createdAt(createdAt)
                     .updatedAt(createdAt)
-                    .build();
-
-            reservations.add(reservation);
+                    .build());
         }
 
         return reservationRepository.saveAll(reservations);
@@ -307,11 +346,12 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .createdAt(res.getCreatedAt())
                     .build());
 
+            PaymentMethod[] allowedMethods = {PaymentMethod.CARD, PaymentMethod.CASH, PaymentMethod.TRANSFER, PaymentMethod.BANK_TRANSFER};
             payments.add(Payment.builder()
                     .reservation(res)
                     .amount(res.getTotalPrice().subtract(res.getProperty().getSecurityDepositAmount()))
                     .paymentType(PaymentType.RESERVATION)
-                    .paymentMethod(PaymentMethod.values()[random.nextInt(PaymentMethod.values().length)])
+                    .paymentMethod(allowedMethods[random.nextInt(allowedMethods.length)])
                     .createdAt(res.getCreatedAt())
                     .build());
 
@@ -393,7 +433,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .reservation(res)
                     .amount(fineAmount)
                     .paymentType(PaymentType.FINE)
-                    .paymentMethod(res.getReservationStatus() == ReservationStatus.COMPLETED ? PaymentMethod.CARD : PaymentMethod.PENDING)
+                    .paymentMethod(res.getReservationStatus() == ReservationStatus.COMPLETED ? PaymentMethod.CARD : null)
                     .createdAt(LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5)))
                     .build();
 

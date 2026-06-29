@@ -8,6 +8,7 @@ import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.*;
 import com.example.propertyrentalmanagement.exceptions.*;
 import com.example.propertyrentalmanagement.repositories.*;
+import com.example.propertyrentalmanagement.entitites.PropertyPhoto;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.AccessCodeService;
 import com.example.propertyrentalmanagement.services.ContractService;
@@ -24,8 +25,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +44,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final FineRepository fineRepository;
     private final PropertyRepository propertyRepository;
     private final ContractService contractService;
+    private final PropertyPhotoRepository propertyPhotoRepository;
 
     @Override
     @Transactional
@@ -356,8 +361,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .user(receiver)
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reservation Cancelled")
-                .message("The reservation has been cancelled.")
+                .title("Reserva cancelada")
+                .message("La reserva en " + reservation.getProperty().getTitle() + " ha sido cancelada.")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -538,6 +543,7 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ReservationResponse> getMyReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status) {
         int safePage = Math.max(page, 0);
         int safePageSize = Math.clamp(pageSize, 1, 100);
@@ -553,10 +559,12 @@ public class ReservationServiceImpl implements ReservationService {
             reservationsPage = reservationRepository.findByTenantIdAndReservationStatus(currentUserId, status, pageable);
         }
 
-        return reservationsPage.map(ReservationResponse::fromEntity);
+        Map<UUID, String> photoUrls = buildFirstPhotoUrlMap(reservationsPage.getContent());
+        return reservationsPage.map(r -> ReservationResponse.fromEntity(r, photoUrls.get(r.getProperty().getId())));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ReservationResponse> getLandlordReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
         int safePage = Math.max(page, 0);
         int safePageSize = Math.clamp(pageSize, 1, 100);
@@ -572,7 +580,8 @@ public class ReservationServiceImpl implements ReservationService {
                 pageable
         );
 
-        return reservationsPage.map(ReservationResponse::fromEntity);
+        Map<UUID, String> photoUrls = buildFirstPhotoUrlMap(reservationsPage.getContent());
+        return reservationsPage.map(r -> ReservationResponse.fromEntity(r, photoUrls.get(r.getProperty().getId())));
     }
 
     @Override
@@ -593,6 +602,19 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         return new LandlordReservationSummaryResponse(reserved, active, completed, cancelled);
+    }
+
+    private Map<UUID, String> buildFirstPhotoUrlMap(List<Reservation> reservations) {
+        List<UUID> propertyIds = reservations.stream()
+                .map(r -> r.getProperty().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        if (propertyIds.isEmpty()) return Map.of();
+        Map<UUID, String> result = new HashMap<>();
+        for (PropertyPhoto photo : propertyPhotoRepository.findByPropertyIdIn(propertyIds)) {
+            result.putIfAbsent(photo.getProperty().getId(), photo.getUrl());
+        }
+        return result;
     }
 
     private void validateCompletionPermission(AppUser currentUser, Reservation reservation) {
@@ -680,6 +702,7 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ReservationResponse> getAllSystemReservations(int page, int pageSize, String sortBy, String sortOrder, ReservationStatus status, String searchTerm) {
         int safePage = Math.max(page, 0);
         int safePageSize = Math.clamp(pageSize, 1, 100);
@@ -693,7 +716,8 @@ public class ReservationServiceImpl implements ReservationService {
                 pageable
         );
 
-        return reservationsPage.map(ReservationResponse::fromEntity);
+        Map<UUID, String> photoUrls = buildFirstPhotoUrlMap(reservationsPage.getContent());
+        return reservationsPage.map(r -> ReservationResponse.fromEntity(r, photoUrls.get(r.getProperty().getId())));
     }
 
     @Transactional(readOnly = true)
