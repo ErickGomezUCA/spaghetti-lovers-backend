@@ -28,6 +28,15 @@ El objetivo principal del sistema es ofrecer una solución organizada, segura y 
 - **Maven**: herramienta utilizada para la gestión de dependencias y construcción del proyecto.
 - **Lombok**: utilizado para reducir código repetitivo en las clases Java.
 
+### Frontend
+- **Next.js:** framework utilizado para construir la aplicación web del lado del cliente.
+- **React:** librería utilizada para crear componentes reutilizables e interfaces dinámicas.
+- **TypeScript:** utilizado para agregar tipado estático y mejorar la mantenibilidad del código.
+- **Tailwind CSS:** utilizado para el diseño y estilos de la interfaz.
+- **shadcn/ui:** conjunto de componentes reutilizables para construir la interfaz de usuario.
+- **Lucide React:** librería de íconos utilizada en la interfaz.
+- **Fetch/API Client:** utilizado para consumir los endpoints expuestos por el backend.
+
 ### Base de datos y herramientas
 
 - **PostgreSQL**: sistema gestor de base de datos relacional utilizado por el proyecto.
