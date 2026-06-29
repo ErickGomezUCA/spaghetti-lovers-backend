@@ -356,8 +356,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .user(receiver)
                 .reservation(reservation)
                 .type(NotificationType.INFO)
-                .title("Reservation Cancelled")
-                .message("The reservation has been cancelled.")
+                .title("Reserva cancelada")
+                .message("La reserva en " + reservation.getProperty().getTitle() + " ha sido cancelada.")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
