@@ -18,4 +18,6 @@ public interface ContractService {
     List<ContractResponse> getContractsByUser(AppUser user);
 
     void processContractExtension(Reservation reservation);
+
+    void cancelContractByReservation(Reservation reservation);
 }
