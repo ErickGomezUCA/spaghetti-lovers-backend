@@ -75,4 +75,17 @@ public class IdentityDocumentController {
                         .build()
         );
     }
+
+    @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isTenant()")
+    @GetMapping("/me")
+    public ResponseEntity<GenericResponse> getMyIdentityDocument() {
+        IdentityDocumentResponse response = identityDocumentService.getMyDocument();
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message(response != null ? "Document retrieved" : "No document found")
+                        .data(response)
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
 }
