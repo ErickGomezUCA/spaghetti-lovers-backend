@@ -164,7 +164,16 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         String[] cloudinaryPublicIds = {
                 "property-rental/images/cxobnju2cbujcdmnityv",
-                "property-rental/images/c7x8bl9whfmiwcp4x9h5"
+                "property-rental/images/c7x8bl9whfmiwcp4x9h5",
+                "property-rental/images/zzyobgdjufkfefc50jr3",
+                "property-rental/images/qpgdi4z9ixt03cq6ihjs",
+                "property-rental/images/qprm8itlwyhg3kmmlk4o",
+                "property-rental/images/cmmxvvwdpoget0zcuqjf",
+                "property-rental/images/nfihqn7qjhulcfbsyci1",
+                "property-rental/images/biaioxfmxvspt8xou4pk",
+                "property-rental/images/agl3z3i1h4shjskfs5zk",
+                "property-rental/images/h6oo1pzkjwraqgkpfmyu",
+                "property-rental/images/xiojw5yny56uwszhr0pj"
         };
         String baseUrl = "https://res.cloudinary.com/dbmchaesw/image/upload/";
 
@@ -178,14 +187,21 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         for (Property prop : properties) {
 
+            List<PropertyPhoto> currentPropertyPhotos = new ArrayList<>();
+
             for (int i = 0; i < 4; i++) {
                 String chosenPublicId = cloudinaryPublicIds[random.nextInt(cloudinaryPublicIds.length)];
-                photos.add(PropertyPhoto.builder()
+                PropertyPhoto newPhoto = PropertyPhoto.builder()
                         .property(prop)
                         .url(baseUrl + chosenPublicId + ".jpg")
                         .cloudinaryPublicId(chosenPublicId)
-                        .build());
+                        .build();
+
+                photos.add(newPhoto);
+                currentPropertyPhotos.add(newPhoto);
             }
+
+            prop.setPhotos(currentPropertyPhotos);
 
             List<Integer> templateIndices = new ArrayList<>(List.of(0, 1, 2, 3, 4));
             java.util.Collections.shuffle(templateIndices);
