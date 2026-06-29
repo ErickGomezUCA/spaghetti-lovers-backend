@@ -5,8 +5,13 @@ Backend de la plataforma de gestion de alquileres de propiedades. API REST const
 ---
 
 ## Resumen del proyecto
+RentFlow es una plataforma web para la gestión de alquileres de propiedades, orientada a facilitar la interacción entre administradores, propietarios e inquilinos. El sistema permite administrar el ciclo completo de una reserva, desde la publicación y búsqueda de propiedades hasta la creación de reservas, generación de contratos, gestión de pagos, códigos de acceso, mantenimiento, calificaciones y notificaciones.
 
-<!-- TODO: Agregar resumen general del proyecto -->
+La plataforma cuenta con diferentes roles de usuario, cada uno con funcionalidades específicas. Los administradores pueden supervisar usuarios, propiedades y actividad general del sistema. Los propietarios pueden gestionar sus propiedades, revisar reservas, atender solicitudes de mantenimiento, consultar reportes y administrar contratos. Los inquilinos pueden buscar propiedades disponibles, realizar reservas, consultar sus contratos, acceder a códigos de ingreso, reportar problemas de mantenimiento, recibir notificaciones y calificar su experiencia.
+
+El proyecto está dividido en frontend y backend. El backend expone una API REST segura que centraliza la lógica de negocio, validaciones, persistencia de datos y control de acceso. El frontend consume esta API para ofrecer una interfaz visual y funcional según el rol del usuario autenticado.
+
+El objetivo principal del sistema es ofrecer una solución organizada, segura y escalable para administrar propiedades en alquiler, automatizando procesos importantes como reservas, contratos, códigos de acceso, notificaciones y control de estados.
 
 ---
 
