@@ -3,7 +3,9 @@ package com.example.propertyrentalmanagement.entitites;
 import com.example.propertyrentalmanagement.enums.DocumentStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -36,4 +38,14 @@ public class IdentityDocument {
 
     @Column(name = "cloudinary_public_id")
     private String cloudinaryPublicId;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
 }

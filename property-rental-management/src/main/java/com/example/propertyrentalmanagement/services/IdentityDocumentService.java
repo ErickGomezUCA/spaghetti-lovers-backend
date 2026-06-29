@@ -14,4 +14,6 @@ public interface IdentityDocumentService {
     IdentityDocumentResponse reviewDocument(UUID documentId, ReviewIdentityDocumentRequest request);
 
     List<IdentityDocumentResponse> getAllDocuments(DocumentStatus status);
+
+     IdentityDocumentResponse getMyDocument();
 }

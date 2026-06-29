@@ -47,21 +47,32 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
             throw new NotResourceOwnerException("Permission denied: only tenants or landlords can submit identity documents.");
         }
 
-        if (identityDocumentRepository.existsByUserAndDocumentStatus(lockedUser, DocumentStatus.VERIFIED)) {
-            throw new ConflictException("Your identity is already verified.");
+        IdentityDocument documentToSave = identityDocumentRepository.findTopByUser_IdOrderByCreatedAtDesc(lockedUser.getId())
+                .orElse(null);
+
+        if (documentToSave != null) {
+            if (documentToSave.getDocumentStatus() == DocumentStatus.VERIFIED) {
+                throw new ConflictException("Your identity is already verified.");
+            }
+            if (documentToSave.getDocumentStatus() == DocumentStatus.PENDING) {
+                throw new ConflictException("You already have an identity verification pending.");
+            }
+
+            documentToSave.setDocumentUrl(request.documentUrl());
+            documentToSave.setDocumentStatus(DocumentStatus.PENDING);
+            documentToSave.setRejectionReason(null);
+            documentToSave.setReviewedBy(null);
+            documentToSave.setReviewedAt(null);
+
+        } else {
+            documentToSave = IdentityDocument.builder()
+                    .user(lockedUser)
+                    .documentUrl(request.documentUrl())
+                    .documentStatus(DocumentStatus.PENDING)
+                    .build();
         }
 
-        if (identityDocumentRepository.existsByUserAndDocumentStatus(lockedUser, DocumentStatus.PENDING)) {
-            throw new ConflictException("You already have an identity verification pending.");
-        }
-
-        IdentityDocument newDocument = IdentityDocument.builder()
-                .user(lockedUser)
-                .documentUrl(request.documentUrl())
-                .documentStatus(DocumentStatus.PENDING)
-                .build();
-
-        newDocument = identityDocumentRepository.save(newDocument);
+        documentToSave = identityDocumentRepository.save(documentToSave);
 
         List<AppUser> admins = userRepository.findByRole(UserRole.ADMIN);
 
@@ -83,7 +94,7 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
             notificationRepository.saveAll(notifications);
         }
 
-        return IdentityDocumentResponse.fromEntity(newDocument);
+        return IdentityDocumentResponse.fromEntity(documentToSave);
     }
 
     @Override
@@ -104,6 +115,14 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
 
         document.setDocumentStatus(request.documentStatus());
         document.setReviewedBy(currentAdmin);
+        document.setReviewedAt(LocalDateTime.now());
+
+        if (request.documentStatus() == DocumentStatus.REJECTED) {
+            document.setRejectionReason(request.rejectionReason());
+        } else {
+            document.setRejectionReason(null);
+        }
+
         identityDocumentRepository.save(document);
 
         String statusMessage;
@@ -138,5 +157,14 @@ public class IdentityDocumentServiceImpl implements IdentityDocumentService {
         return documents.stream()
                 .map(IdentityDocumentResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public IdentityDocumentResponse getMyDocument() {
+        UUID currentUserId = authenticatedUserProvider.getCurrentUser().getId();
+        return identityDocumentRepository.findByUser_Id(currentUserId)
+                .map(IdentityDocumentResponse::fromEntity)
+                .orElse(null);
     }
 }
