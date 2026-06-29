@@ -63,6 +63,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             seedAvailabilityAndMaintenance(reservations, properties, users);
 
             log.info("¡Sembrado masivo completado con éxito!");
+        } else {
+            log.info("La base de datos ya contiene información. Se omite el seeder.");
         }
     }
 
@@ -99,14 +101,60 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void seedIdentityDocuments(List<AppUser> users) {
         List<IdentityDocument> documents = new ArrayList<>();
-        for (AppUser user : users) {
-            documents.add(IdentityDocument.builder()
+
+        AppUser adminUser = users.stream()
+                .filter(u -> u.getRole() == UserRole.ADMIN)
+                .findFirst()
+                .orElseThrow();
+
+        List<AppUser> targetUsers = new ArrayList<>(users.stream()
+                .filter(u -> u.getRole() == UserRole.TENANT || u.getRole() == UserRole.LANDLORD)
+                .toList());
+
+        Collections.shuffle(targetUsers);
+
+        String realDuiUrl = "https://res.cloudinary.com/dbmchaesw/image/upload/v1782362419/property-rental/images/s6krv7hr9uznrnpa8r8s.jpg";
+        String[] rejectionReasons = {
+                "La imagen está borrosa y no se pueden leer los datos con claridad.",
+                "El documento de identidad se encuentra vencido.",
+                "Falta adjuntar el reverso del documento."
+        };
+
+        for (int i = 0; i < targetUsers.size(); i++) {
+            AppUser user = targetUsers.get(i);
+
+            IdentityDocument.IdentityDocumentBuilder docBuilder = IdentityDocument.builder()
                     .user(user)
-                    .documentUrl("https://res.cloudinary.com/dbmchaesw/image/upload/v1782362419/property-rental/images/s6krv7hr9uznrnpa8r8s.jpg")
-                    .documentStatus(DocumentStatus.values()[random.nextInt(DocumentStatus.values().length)])
-                    .cloudinaryPublicId("sample_dui_" + user.getId())
-                    .build());
+                    .documentUrl(realDuiUrl);
+
+            if (i < 7) {
+                LocalDateTime reviewedDate = LocalDateTime.now().minusDays(faker.number().numberBetween(10, 30));
+                LocalDateTime createdDate = reviewedDate.minusDays(faker.number().numberBetween(1, 3));
+
+                docBuilder.documentStatus(DocumentStatus.VERIFIED)
+                        .reviewedBy(adminUser)
+                        .reviewedAt(reviewedDate)
+                        .createdAt(createdDate)
+                        .cloudinaryPublicId("sample_dui_verified_" + user.getId());
+            } else if (i < 10) {
+                docBuilder.documentStatus(DocumentStatus.PENDING)
+                        .createdAt(LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5)))
+                        .cloudinaryPublicId("sample_dui_pending_" + user.getId());
+            } else {
+                LocalDateTime reviewedDate = LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5));
+                LocalDateTime createdDate = reviewedDate.minusHours(faker.number().numberBetween(2, 48));
+
+                docBuilder.documentStatus(DocumentStatus.REJECTED)
+                        .reviewedBy(adminUser)
+                        .reviewedAt(reviewedDate)
+                        .rejectionReason(rejectionReasons[random.nextInt(rejectionReasons.length)])
+                        .createdAt(createdDate)
+                        .cloudinaryPublicId("sample_dui_rejected_" + user.getId());
+            }
+
+            documents.add(docBuilder.build());
         }
+
         identityDocumentRepository.saveAll(documents);
     }
 
@@ -218,9 +266,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .areaSqm(BigDecimal.valueOf(faker.number().numberBetween(40, 300)))
                     .propertyType(randomType)
                     .propertyStatus(PropertyStatus.ACTIVE)
-                    .rules("Prohibido fumar en interiores. " +
-                            "No se permiten mascotas grandes. " +
-                            "Respetar horas de silencio (10 PM - 6 AM).")
+                    .rules("Prohibido fumar en interiores. No se permiten mascotas grandes. Respetar horas de silencio (10 PM - 6 AM).")
                     .build();
 
             properties.add(property);
@@ -377,7 +423,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         }
 
-        // --- NUEVA LÓGICA DE MULTAS: Exactamente 20 ---
         List<Reservation> reservationsForFines = new ArrayList<>(reservations);
         java.util.Collections.shuffle(reservationsForFines);
         int finesToCreate = Math.min(20, reservationsForFines.size());
@@ -388,7 +433,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             BigDecimal fineAmount = BigDecimal.valueOf(faker.number().numberBetween(15, 150));
             FineType randomFineType = FineType.values()[random.nextInt(FineType.values().length)];
 
-            // Crear y guardar el pago primero para cumplir la restricción nullable = false
             Payment finePayment = Payment.builder()
                     .reservation(res)
                     .amount(fineAmount)
@@ -424,8 +468,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
 
         accessCodeRepository.saveAll(accessCodes);
-        paymentRepository.saveAll(payments); // Guarda los pagos de las reservas
-        fineRepository.saveAll(fines);       // Guarda las multas (los pagos ya están persistidos)
+        paymentRepository.saveAll(payments);
+        fineRepository.saveAll(fines);
         signatureRepository.saveAll(signatures);
         contractRepository.saveAll(contracts);
         ratingRepository.saveAll(ratings);
