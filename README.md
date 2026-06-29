@@ -50,7 +50,7 @@ Carpeta inicial: `com.example.propertyrentalmanagement`
 
 El backend implementa un esquema de seguridad basado en Spring Security y JWT (JSON Web Token). Este mecanismo permite autenticar usuarios mediante credenciales y proteger los endpoints de la API según el rol del usuario autenticado.
 
-1. Authentication
+**1. Authentication**
 
 La autenticación permite verificar la identidad de un usuario. En el sistema, los usuarios pueden autenticarse mediante el endpoint de login:
 
@@ -70,7 +70,7 @@ Una vez generado el token, el frontend debe enviarlo en cada request protegido u
 
 Authorization: Bearer <token>
 
-2. JWT Authentication Filter
+**2. JWT Authentication Filter**
 
 La clase JwtAuthenticationFilter se ejecuta antes del filtro estándar de autenticación de Spring Security. Su responsabilidad es interceptar cada request entrante y verificar si contiene un token JWT válido.
 
@@ -87,7 +87,7 @@ Registra la autenticación en el SecurityContextHolder.
 
 Esto permite que el backend reconozca al usuario autenticado durante toda la ejecución del request.
 
-3. Security Configuration
+**3. Security Configuration**
 
 La clase SecurityConfig define la configuración principal de seguridad del backend.
 
@@ -101,7 +101,7 @@ Proteger el resto de endpoints.
 Registrar el filtro JWT.
 Configurar respuestas personalizadas para errores 401 Unauthorized y 403 Forbidden.
 
-4. Endpoints públicos
+**4. Endpoints públicos**
 
 Algunos endpoints están disponibles sin autenticación. Estos se configuran en SecurityConfig.
 
@@ -110,7 +110,7 @@ Los endpoints públicos principales son:
 POST /api/users/register
 POST /api/users/login
 
-5. Endpoints protegidos
+**5. Endpoints protegidos**
 
 Todos los demás endpoints requieren autenticación:
 
@@ -122,7 +122,7 @@ Si el usuario no envía token, envía un token inválido o el token expiró, el 
 
 401 Unauthorized
 
-6. Authorization
+**6. Authorization**
 
 El sistema maneja tres roles principales:
 
@@ -138,7 +138,7 @@ Para habilitar estas validaciones por método, SecurityConfig usa:
 
 Esto permite proteger endpoints específicos directamente en los controllers.
 
-7. AuthorizationService
+**7. AuthorizationService**
 
 La clase AuthorizationService centraliza las validaciones de permisos por rol y por usuario autenticado.
 
@@ -152,7 +152,7 @@ public boolean isAdminOrCurrentUser(UUID userId)
 
 Estos métodos consultan al usuario autenticado mediante AuthenticatedUserProvider y verifican si cumple con la condición requerida.
 
-8. Password Encoder
+**8. Password Encoder**
 
 Las contraseñas no se almacenan en texto plano. El sistema usa BCryptPasswordEncoder para encriptar las contraseñas.
 
