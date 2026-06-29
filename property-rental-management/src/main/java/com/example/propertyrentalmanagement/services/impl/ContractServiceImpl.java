@@ -98,6 +98,10 @@ public class ContractServiceImpl implements ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ContractNotFoundException("Contract not found"));
 
+        if (contract.getContractStatus() == ContractStatus.CANCELLED) {
+            throw new InvalidContractException("Cancelled contracts cannot be signed");
+        }
+
         Reservation reservation = contract.getReservation();
         Property property = reservation.getProperty();
 
@@ -250,5 +254,19 @@ public class ContractServiceImpl implements ContractService {
         } catch (Exception e) {
             throw new RuntimeException("Error generating contract PDF", e);
         }
+    }
+
+    @Override
+    public void cancelContractByReservation(Reservation reservation) {
+        Contract contract = contractRepository.findContractByReservationId(
+                reservation.getId()
+        );
+
+        if (contract == null) {
+            return;
+        }
+
+        contract.setContractStatus(ContractStatus.CANCELLED);
+        contractRepository.save(contract);
     }
 }

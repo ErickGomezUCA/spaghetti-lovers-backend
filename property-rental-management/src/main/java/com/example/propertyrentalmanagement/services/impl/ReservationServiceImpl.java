@@ -265,6 +265,8 @@ public class ReservationServiceImpl implements ReservationService {
 
         accessCodeService.invalidateCodesByReservation(reservation);
 
+        contractService.cancelContractByReservation(reservation);
+
         createCancellationNotification(currentUser, reservation);
 
         reservationRepository.save(reservation);
