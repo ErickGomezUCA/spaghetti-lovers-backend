@@ -226,6 +226,64 @@ Gestiona las propiedades que los landlords publican en la plataforma.
 
 ---
 
+### Calificaciones
+
+Gestiona las calificaciones que los usuarios se otorgan entre sí al finalizar una reserva, permitiendo construir una reputación tanto para inquilinos como para propietarios dentro de la plataforma.
+
+**Endpoint:** `/api/users/ratings`
+
+**Entidad:** `Rating`: almacena la reserva asociada, el usuario que califica (`reviewer`), el usuario calificado (`reviewed`), la puntuación otorgada, un comentario opcional y la fecha de creación.
+
+**Acciones:**
+- Creación de una calificación asociada a una reserva, identificando automáticamente al usuario calificado según el rol del usuario autenticado dentro de esa reserva (`tenant` o `landlord`).
+- Validación de que el usuario autenticado forme parte de la reserva antes de permitir la calificación.
+- Restricción de una única calificación por usuario y por reserva, evitando calificaciones duplicadas.
+- Consulta de las calificaciones recibidas por un usuario, junto con el promedio y el total de calificaciones obtenidas.
+- Notificación al usuario calificado cuando recibe una nueva calificación.
+
+---
+
+### Reporte de Ocupación e Ingresos por Propiedad
+
+Permite a landlords y administradores analizar el rendimiento de propiedades en un período de tiempo determinado, visualizando métricas de ocupación, ingresos y reservas a través de KPIs y gráficos comparativas.
+
+**Endpoints:** `GET /api/properties/:propertyId/report` · `GET /api/properties/report`
+
+**Entidades involucradas:** `Reservation`: fuente de las métricas de ocupación, noches ocupadas y totales base. `Payment`: fuente del ingreso real (`revenue.total`), sumando únicamente pagos de tipo `RESERVATION` y `EXTENSION`. `Property`: provee el título de la propiedad y la relación con el landlord. `AppUser`: permite al Admin filtrar por landlord específico mediante `GET /api/users/landlords`.
+
+**Acciones:**
+
+* Generación de reporte individual por propiedad, calculando tasa de ocupación, noches ocupadas, total de reservas e ingresos desglosados en base, limpieza, penalizaciones y total real desde pagos.
+* Generación de reporte de todas las propiedades del landlord autenticado, reporte de las propiedades de cada landlord o todas las propiedades del sistema si el rol es Admin.
+* Filtro por landlord específico disponible exclusivamente para el rol Admin, mediante el parámetro opcional `?landlordId=` en el endpoint de reporte global.
+* Exclusión automática de reservas con estado `CANCELLED` en todos los cálculos.
+* Restricción de fechas: solo entran reservas cuyo `check_out_date` cae dentro del rango solicitado (`check_out_date <= endDate`). El backend lanza excepción si `startDate >= endDate`.
+* Visualización en el frontend de cuatro gráficos: tendencia de ocupación mensual (línea), ingresos mensuales (barras), ingresos por propiedad (barras horizontales) y desglose de ingresos por tipo (pie chart). Los gráficos de tendencia mensual solo se muestran cuando el rango seleccionado supera un mes.
+* El campo `revenue.total` proviene exclusivamente de la tabla `payment`. Si una reserva no tiene un pago de tipo `RESERVATION` o `EXTENSION` registrado, su ingreso total será `$0` aunque tenga valores en `base_total` y `cleaning_fee`.
+
+---
+
+### Calendario de Disponibilidad Sincronizado
+
+Permite al landlord visualizar en una vista de calendario mensual todos los bloqueos activos de una propiedad, incluyendo reservas confirmadas y mantenimientos programados, manteniendo sincronización automática con el estado real de la propiedad.
+
+**Endpoint:** `GET /api/properties/:propertyId/availability`
+
+**Entidades involucradas:** `AvailabilityCalendar`: fuente de verdad de todos los bloqueos de la propiedad, clasificados por tipo (`RESERVATION`, `MAINTENANCE`, `PREVENTIVE_MAINTENANCE`), con referencia a la reserva o mantenimiento que generó el bloqueo. `Property`: provee la lista de propiedades del landlord para el selector del calendario. `Maintenance` y `Reservation`: generan y eliminan registros en `AvailabilityCalendar` automáticamente según su ciclo de vida.
+
+**Acciones:**
+
+* Consulta de disponibilidad de una propiedad en un rango de fechas, retornando todos los conflictos activos con su tipo, motivo y fechas de inicio y fin.
+* Detección de solapamientos mediante la condición `timestamp_start < endDate AND timestamp_end > startDate`, cubriendo bloqueos parciales y totales dentro del rango.
+* Visualización en calendario mensual con navegación entre meses, recargando automáticamente los eventos de la propiedad seleccionada al cambiar de mes.
+* Diferenciación visual por tipo de evento: reservas, mantenimientos y mantenimientos preventivos.
+* Panel lateral de eventos del mes con detalle de cada bloqueo: tipo, motivo o descripción, y rango de fechas.
+* Preselección automática de propiedad al navegar desde la vista "Mis Propiedades" mediante el parámetro `?propertyId=` en la URL, evitando que el landlord deba seleccionarla manualmente.
+* Sincronización automática del calendario ante los siguientes eventos: creación de reserva (`INSERT` con `block_type = RESERVATION`), cancelación o completación de reserva (`DELETE` del registro), extensión de reserva (`UPDATE` de `timestamp_end`), confirmación de mantenimiento con bloqueo (`INSERT` con `block_type = MAINTENANCE`), generación de mantenimiento preventivo sin reserva activa (`INSERT` con `block_type = PREVENTIVE_MAINTENANCE`), y resolución de mantenimiento (`DELETE` del registro correspondiente).
+* Cuando la propiedad seleccionada es "Todas las propiedades", el calendario no muestra eventos y solicita al usuario seleccionar una propiedad específica, ya que la consulta de disponibilidad requiere un `propertyId` concreto.
+
+---
+
 ### Mantenimiento
 
 Gestiona solicitudes de mantenimiento correctivo reportadas por tenants sobre propiedades activas.
