@@ -120,7 +120,6 @@ public class DatabaseSeeder implements CommandLineRunner {
         };
         String baseUrl = "https://res.cloudinary.com/dbmchaesw/image/upload/";
 
-
         Object[][] maintenanceTemplates = {
                 {"Fumigación y Control de Plagas", "Aplicación de tratamiento preventivo contra insectos y roedores en áreas comunes.", MaintenanceScheduleFrequency.MONTHLY, 3, MaintenanceScheduleStatus.ACTIVE},
                 {"Limpieza de Cisterna y Filtros", "Lavado profundo del tanque de agua principal y sustitución de filtros hidráulicos.", MaintenanceScheduleFrequency.YEARLY, 1, MaintenanceScheduleStatus.SCHEDULED},
@@ -218,8 +217,10 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .bathrooms(faker.number().numberBetween(1, 4))
                     .areaSqm(BigDecimal.valueOf(faker.number().numberBetween(40, 300)))
                     .propertyType(randomType)
-                    .propertyStatus(PropertyStatus.ACTIVE) // Se actualizará en el ciclo de reservas si está ocupada
-                    .rules("Prohibido fumar en interiores. No se permiten mascotas grandes. Respetar horas de silencio (10 PM - 6 AM).")
+                    .propertyStatus(PropertyStatus.ACTIVE)
+                    .rules("Prohibido fumar en interiores. " +
+                            "No se permiten mascotas grandes. " +
+                            "Respetar horas de silencio (10 PM - 6 AM).")
                     .build();
 
             properties.add(property);
@@ -268,7 +269,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             reservations.add(reservation);
         }
 
-        return reservationRepository.saveAll(reservations);    }
+        return reservationRepository.saveAll(reservations);
+    }
 
     private void seedReservationExtras(List<Reservation> reservations, List<AppUser> users) {
         List<AccessCode> accessCodes = new ArrayList<>();
@@ -317,7 +319,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .reservation(res)
                     .amount(res.getProperty().getSecurityDepositAmount())
                     .paymentType(PaymentType.GUARANTEE_DEPOSIT)
-                    .paymentMethod(PaymentMethod.CARD) // Depósitos usualmente en tarjeta
+                    .paymentMethod(PaymentMethod.CARD)
                     .refundAmount(res.getReservationStatus() == ReservationStatus.COMPLETED ? res.getProperty().getSecurityDepositAmount() : null)
                     .refundedAt(res.getReservationStatus() == ReservationStatus.COMPLETED ? LocalDateTime.now() : null)
                     .createdAt(res.getCreatedAt())
@@ -325,36 +327,13 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             notifications.add(Notification.builder()
                     .user(res.getProperty().getLandlord())
-                    .reservation(res) // VINCULADA ESTRICTAMENTE
+                    .reservation(res)
                     .type(NotificationType.INFO)
                     .title("Nueva reserva confirmada")
                     .message("El inquilino " + res.getTenant().getName() + " ha reservado " + res.getProperty().getTitle())
                     .isRead(random.nextBoolean())
                     .createdAt(res.getCreatedAt())
                     .build());
-
-            if (random.nextDouble() < 0.20 && res.getReservationStatus() != ReservationStatus.CANCELLED) {
-                Fine fine = Fine.builder()
-                        .reservation(res)
-                        .issuedBy(res.getProperty().getLandlord())
-                        .fineType(FineType.values()[random.nextInt(FineType.values().length)])
-                        .description("Infracción registrada según las reglas de la propiedad.")
-                        .amount(BigDecimal.valueOf(faker.number().numberBetween(20, 100)))
-                        .issuedAt(LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5)))
-                        .resolvedAt(res.getReservationStatus() == ReservationStatus.COMPLETED ? LocalDateTime.now() : null)
-                        .build();
-                fines.add(fine);
-
-                notifications.add(Notification.builder()
-                        .user(res.getTenant())
-                        .reservation(res) // VINCULADA A LA RESERVA
-                        .type(NotificationType.INFO)
-                        .title("Multa emitida")
-                        .message("Se ha emitido un cargo por " + fine.getFineType().name() + " en su estadía.")
-                        .isRead(false)
-                        .createdAt(fine.getIssuedAt())
-                        .build());
-            }
 
             Signature tenantSig = Signature.builder()
                     .hash(UUID.randomUUID().toString())
@@ -398,14 +377,61 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
         }
 
+        // --- NUEVA LÓGICA DE MULTAS: Exactamente 20 ---
+        List<Reservation> reservationsForFines = new ArrayList<>(reservations);
+        java.util.Collections.shuffle(reservationsForFines);
+        int finesToCreate = Math.min(20, reservationsForFines.size());
+
+        for (int i = 0; i < finesToCreate; i++) {
+            Reservation res = reservationsForFines.get(i);
+
+            BigDecimal fineAmount = BigDecimal.valueOf(faker.number().numberBetween(15, 150));
+            FineType randomFineType = FineType.values()[random.nextInt(FineType.values().length)];
+
+            // Crear y guardar el pago primero para cumplir la restricción nullable = false
+            Payment finePayment = Payment.builder()
+                    .reservation(res)
+                    .amount(fineAmount)
+                    .paymentType(PaymentType.FINE)
+                    .paymentMethod(res.getReservationStatus() == ReservationStatus.COMPLETED ? PaymentMethod.CARD : PaymentMethod.PENDING)
+                    .createdAt(LocalDateTime.now().minusDays(faker.number().numberBetween(1, 5)))
+                    .build();
+
+            finePayment = paymentRepository.save(finePayment);
+
+            Fine fine = Fine.builder()
+                    .reservation(res)
+                    .issuedBy(res.getProperty().getLandlord())
+                    .fineType(randomFineType)
+                    .description("Infracción detectada: " + randomFineType.name() + ". Se requiere el pago inmediato.")
+                    .amount(fineAmount)
+                    .payment(finePayment)
+                    .issuedAt(finePayment.getCreatedAt())
+                    .resolvedAt(res.getReservationStatus() == ReservationStatus.COMPLETED ? LocalDateTime.now() : null)
+                    .build();
+
+            fines.add(fine);
+
+            notifications.add(Notification.builder()
+                    .user(res.getTenant())
+                    .reservation(res)
+                    .type(NotificationType.INFO)
+                    .title("Nueva multa emitida")
+                    .message("Se ha emitido un cargo por $" + fineAmount + " debido a: " + randomFineType.name())
+                    .isRead(false)
+                    .createdAt(fine.getIssuedAt())
+                    .build());
+        }
+
         accessCodeRepository.saveAll(accessCodes);
-        paymentRepository.saveAll(payments);
-        fineRepository.saveAll(fines);
+        paymentRepository.saveAll(payments); // Guarda los pagos de las reservas
+        fineRepository.saveAll(fines);       // Guarda las multas (los pagos ya están persistidos)
         signatureRepository.saveAll(signatures);
         contractRepository.saveAll(contracts);
         ratingRepository.saveAll(ratings);
-        notificationRepository.saveAll(notifications); // Guardamos notificaciones aquí
+        notificationRepository.saveAll(notifications);
     }
+
     private void seedAvailabilityAndMaintenance(List<Reservation> reservations, List<Property> properties, List<AppUser> users) {
         List<AvailabilityCalendar> calendarBlocks = new ArrayList<>();
         List<Maintenance> maintenanceRequests = new ArrayList<>();
