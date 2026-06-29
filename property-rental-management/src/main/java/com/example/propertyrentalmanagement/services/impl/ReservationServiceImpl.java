@@ -718,8 +718,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         BigDecimal cancellationPenalty = calculateCancellationPenalty(
                 reservation,
-                daysUntilCheckIn,
-                currentUser
+                daysUntilCheckIn
         );
 
         BigDecimal reservationRefundAmount = calculateReservationRefundAmount(reservation, cancellationPenalty);
