@@ -258,7 +258,6 @@ Permite a landlords y administradores analizar el rendimiento de propiedades en 
 * Filtro por landlord específico disponible exclusivamente para el rol Admin, mediante el parámetro opcional `?landlordId=` en el endpoint de reporte global.
 * Exclusión automática de reservas con estado `CANCELLED` en todos los cálculos.
 * Restricción de fechas: solo entran reservas cuyo `check_out_date` cae dentro del rango solicitado (`check_out_date <= endDate`). El backend lanza excepción si `startDate >= endDate`.
-* Visualización en el frontend de cuatro gráficos: tendencia de ocupación mensual (línea), ingresos mensuales (barras), ingresos por propiedad (barras horizontales) y desglose de ingresos por tipo (pie chart). Los gráficos de tendencia mensual solo se muestran cuando el rango seleccionado supera un mes.
 * El campo `revenue.total` proviene exclusivamente de la tabla `payment`. Si una reserva no tiene un pago de tipo `RESERVATION` o `EXTENSION` registrado, su ingreso total será `$0` aunque tenga valores en `base_total` y `cleaning_fee`.
 
 ---
@@ -275,10 +274,6 @@ Permite al landlord visualizar en una vista de calendario mensual todos los bloq
 
 * Consulta de disponibilidad de una propiedad en un rango de fechas, retornando todos los conflictos activos con su tipo, motivo y fechas de inicio y fin.
 * Detección de solapamientos mediante la condición `timestamp_start < endDate AND timestamp_end > startDate`, cubriendo bloqueos parciales y totales dentro del rango.
-* Visualización en calendario mensual con navegación entre meses, recargando automáticamente los eventos de la propiedad seleccionada al cambiar de mes.
-* Diferenciación visual por tipo de evento: reservas, mantenimientos y mantenimientos preventivos.
-* Panel lateral de eventos del mes con detalle de cada bloqueo: tipo, motivo o descripción, y rango de fechas.
-* Preselección automática de propiedad al navegar desde la vista "Mis Propiedades" mediante el parámetro `?propertyId=` en la URL, evitando que el landlord deba seleccionarla manualmente.
 * Sincronización automática del calendario ante los siguientes eventos: creación de reserva (`INSERT` con `block_type = RESERVATION`), cancelación o completación de reserva (`DELETE` del registro), extensión de reserva (`UPDATE` de `timestamp_end`), confirmación de mantenimiento con bloqueo (`INSERT` con `block_type = MAINTENANCE`), generación de mantenimiento preventivo sin reserva activa (`INSERT` con `block_type = PREVENTIVE_MAINTENANCE`), y resolución de mantenimiento (`DELETE` del registro correspondiente).
 * Cuando la propiedad seleccionada es "Todas las propiedades", el calendario no muestra eventos y solicita al usuario seleccionar una propiedad específica, ya que la consulta de disponibilidad requiere un `propertyId` concreto.
 
