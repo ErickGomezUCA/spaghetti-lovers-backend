@@ -3,6 +3,8 @@ package com.example.propertyrentalmanagement.services.impl;
 import com.example.propertyrentalmanagement.dto.request.CreateFineRequest;
 import com.example.propertyrentalmanagement.dto.request.PayFineRequest;
 import com.example.propertyrentalmanagement.dto.response.FineResponse;
+import com.example.propertyrentalmanagement.dto.response.FineSummaryResponse;
+import com.example.propertyrentalmanagement.dto.response.FineSummaryStatsResponse;
 import com.example.propertyrentalmanagement.entitites.*;
 import com.example.propertyrentalmanagement.enums.FineType;
 import com.example.propertyrentalmanagement.enums.NotificationType;
@@ -14,11 +16,16 @@ import com.example.propertyrentalmanagement.exceptions.ReservationNotFoundExcept
 import com.example.propertyrentalmanagement.repositories.*;
 import com.example.propertyrentalmanagement.security.AuthenticatedUserProvider;
 import com.example.propertyrentalmanagement.services.FineService;
+import com.example.propertyrentalmanagement.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -152,5 +159,45 @@ public class FineServiceImpl implements FineService {
         notificationRepository.save(notification);
 
         return FineResponse.fromEntity(fine, payment);
+    }
+
+    @Override
+    public Page<FineSummaryResponse> getLandlordFines(
+            int page, int pageSize, String sortBy, String sortOrder,
+            FineType fineType, Boolean resolved, String searchTerm
+    ) {
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        String normalizedSearch = (searchTerm == null || searchTerm.isBlank()) ? null : searchTerm.trim();
+        UUID landlordId = authProvider.getCurrentUser().getId();
+
+        Page<Fine> finesPage = fineRepository.findLandlordFinesWithFilters(
+                landlordId, fineType, resolved, normalizedSearch, pageable);
+        return finesPage.map(FineSummaryResponse::fromEntity);
+    }
+
+    @Override
+    public FineSummaryStatsResponse getLandlordFinesSummary() {
+        UUID landlordId = authProvider.getCurrentUser().getId();
+
+        long total = fineRepository.countByReservation_Property_LandlordId(landlordId);
+        long pendingCount = fineRepository.countByReservation_Property_LandlordIdAndResolvedAtIsNull(landlordId);
+        BigDecimal pendingAmount = fineRepository.sumPendingAmountByLandlord(landlordId);
+        BigDecimal resolvedAmount = fineRepository.sumResolvedAmountByLandlord(landlordId);
+
+        return new FineSummaryStatsResponse(total, pendingCount, pendingAmount, resolvedAmount);
+    }
+
+    @Override
+    public Page<FineSummaryResponse> getMyFines(int page, int pageSize, String sortBy, String sortOrder) {
+        UUID tenantId = authProvider.getCurrentUser().getId();
+        int safePage = Math.max(page, 0);
+        int safePageSize = Math.clamp(pageSize, 1, 100);
+
+        Pageable pageable = PaginationUtils.getPageRequest(safePage, safePageSize, sortBy, sortOrder);
+        Page<Fine> finesPage = fineRepository.findByReservation_Tenant_Id(tenantId, pageable);
+
+        return finesPage.map(FineSummaryResponse::fromEntity);
     }
 }
