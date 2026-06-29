@@ -18,4 +18,6 @@ public interface IdentityDocumentRepository extends JpaRepository<IdentityDocume
     Optional<IdentityDocument> findByUser_Id(UUID userId);
 
     List<IdentityDocument> findByDocumentStatus(DocumentStatus status);
+
+    Optional<IdentityDocument> findTopByUser_IdOrderByCreatedAtDesc(UUID userId);
 }
