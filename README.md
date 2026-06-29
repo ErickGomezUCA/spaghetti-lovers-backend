@@ -277,17 +277,17 @@ Gestiona el ciclo completo de reservas realizadas por tenants sobre las propieda
 
 **Acciones:**
 
-Creación de reservas por parte de tenants sobre propiedades disponibles.
-Validación de disponibilidad de la propiedad en el rango de fechas seleccionado.
-Consulta paginada de reservas propias para tenants.
-Consulta paginada de reservas asociadas a propiedades de un landlord.
-Consulta de detalle de una reserva específica.
-Extensión de reservas activas o reservadas, validando disponibilidad y generando el pago adicional correspondiente.
-Vista previa de cancelación con cálculo de penalización y montos de reembolso.
-Cancelación de reservas aplicando la política de penalización según la cercanía del check-in.
-Finalización de reservas por parte del landlord o administrador.
-Actualización automática de estado de reservas mediante procesos programados.
-Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaciones.
+-Creación de reservas por parte de tenants sobre propiedades disponibles.
+-Validación de disponibilidad de la propiedad en el rango de fechas seleccionado.
+-Consulta paginada de reservas propias para tenants.
+-Consulta paginada de reservas asociadas a propiedades de un landlord.
+-Consulta de detalle de una reserva específica.
+-Extensión de reservas activas o reservadas, validando disponibilidad y generando el pago adicional correspondiente.
+-Vista previa de cancelación con cálculo de penalización y montos de reembolso.
+-Cancelación de reservas aplicando la política de penalización según la cercanía del check-in.
+-Finalización de reservas por parte del landlord o administrador.
+-Actualización automática de estado de reservas mediante procesos programados.
+-Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaciones.
 
 ---
 
@@ -311,7 +311,22 @@ Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaci
 
 ### Codigos de acceso
 
-<!-- TODO -->
+Gestiona los códigos de acceso generados para que los tenants puedan ingresar a las propiedades durante el período de su reserva.
+
+**Endpoint:** /api/access-codes
+
+**Entidad:** AccessCode: almacena la propiedad, la reserva asociada, el código generado, el tipo de código, fecha de inicio de validez, fecha de expiración, estado activo/inactivo y fecha de creación.
+
+**Acciones:**
+
+-Generación automática de códigos de acceso al crear o confirmar una reserva.
+-Consulta de códigos de acceso por parte del tenant.
+-Consulta de códigos asociados a propiedades de un landlord.
+-Visualización del estado del código: ACTIVE, PENDING, EXPIRED o INACTIVE.
+-Validación de vigencia del código según las fechas de check-in y check-out de la reserva.
+-Invalidación automática o manual de códigos cuando una reserva es cancelada o deja de estar vigente.
+-Extensión de la vigencia del código cuando una reserva es extendida.
+-Listado paginado de códigos de acceso para mejorar el manejo de múltiples reservas.
 
 ---
 
