@@ -24,19 +24,20 @@ public record ReservationResponse(
         ReservationStatus reservationStatus
 ) {
     public static ReservationResponse fromEntity(Reservation reservation) {
-
         String imageUrl = null;
         if (reservation.getProperty().getPhotos() != null && !reservation.getProperty().getPhotos().isEmpty()) {
             imageUrl = reservation.getProperty().getPhotos().get(0).getUrl();
         }
+        return fromEntity(reservation, imageUrl);
+    }
 
-
+    public static ReservationResponse fromEntity(Reservation reservation, String photoUrl) {
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getProperty().getTitle(),
                 reservation.getProperty().getCity(),
                 reservation.getProperty().getDepartment(),
-                imageUrl,
+                photoUrl,
                 reservation.getTenant().getName(),
                 reservation.getTenant().getEmail(),
                 reservation.getProperty().getLandlord().getName(),
