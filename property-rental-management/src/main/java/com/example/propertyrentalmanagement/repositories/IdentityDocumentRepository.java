@@ -6,6 +6,7 @@ import com.example.propertyrentalmanagement.enums.DocumentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,6 @@ public interface IdentityDocumentRepository extends JpaRepository<IdentityDocume
     boolean existsByUserAndDocumentStatus(AppUser user, DocumentStatus status);
 
     Optional<IdentityDocument> findByUser_Id(UUID userId);
+
+    List<IdentityDocument> findByDocumentStatus(DocumentStatus status);
 }

@@ -4,6 +4,7 @@ import com.example.propertyrentalmanagement.dto.request.ReviewIdentityDocumentRe
 import com.example.propertyrentalmanagement.dto.request.SubmitIdentityDocumentRequest;
 import com.example.propertyrentalmanagement.dto.response.GenericResponse;
 import com.example.propertyrentalmanagement.dto.response.IdentityDocumentResponse;
+import com.example.propertyrentalmanagement.enums.DocumentStatus;
 import com.example.propertyrentalmanagement.services.IdentityDocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +22,22 @@ import java.util.UUID;
 public class IdentityDocumentController {
 
     private final IdentityDocumentService identityDocumentService;
+
+    @PreAuthorize("@authorizationService.isAdmin()")
+    @GetMapping
+    public ResponseEntity<GenericResponse> getAllIdentityDocuments(
+            @RequestParam(required = false) DocumentStatus status) {
+
+        List<IdentityDocumentResponse> documents = identityDocumentService.getAllDocuments(status);
+
+        return ResponseEntity.ok(
+                GenericResponse.builder()
+                        .message("Identity documents retrieved successfully.")
+                        .data(documents)
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
 
     @PreAuthorize("@authorizationService.isLandlord() or @authorizationService.isTenant()")
     @PostMapping
