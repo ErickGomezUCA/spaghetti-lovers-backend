@@ -17,7 +17,30 @@ El objetivo principal del sistema es ofrecer una solución organizada, segura y 
 
 ## Tecnologias
 
-<!-- TODO: Agregar descripcion de dependencias principales de Maven -->
+### Backend
+
+- **Java 21**: lenguaje principal utilizado para el desarrollo del backend.
+- **Spring Boot**: framework utilizado para construir la API REST.
+- **Spring Security**: utilizado para manejar la autenticación y autorización de usuarios.
+- **JWT (JSON Web Token)**: utilizado para proteger endpoints mediante tokens de acceso.
+- **Spring Data JPA**: utilizado para la comunicación con la base de datos.
+- **Hibernate**: ORM utilizado para mapear las entidades Java con las tablas de la base de datos.
+- **Maven**: herramienta utilizada para la gestión de dependencias y construcción del proyecto.
+- **Lombok**: utilizado para reducir código repetitivo en las clases Java.
+
+### Frontend
+
+- **React**: librería utilizada para construir la interfaz de usuario.
+- **JavaScript**: lenguaje utilizado para la lógica del frontend.
+- **HTML**: utilizado para la estructura de las vistas.
+- **CSS**: utilizado para el diseño y estilos de la aplicación.
+- **Axios**: utilizado para realizar peticiones HTTP hacia el backend.
+
+### Base de datos y herramientas
+
+- **PostgreSQL**: sistema gestor de base de datos relacional utilizado por el proyecto.
+- **Docker**: utilizado para ejecutar servicios como la base de datos en contenedores.
+- **Git y GitHub**: utilizados para el control de versiones y colaboración del equipo.
 
 ---
 
