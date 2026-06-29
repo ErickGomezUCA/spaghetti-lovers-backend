@@ -269,7 +269,25 @@ Gestiona la generacion y firma digital de contratos de arrendamiento.
 
 ### Reservas
 
-<!-- TODO -->
+Gestiona el ciclo completo de reservas realizadas por tenants sobre las propiedades disponibles en la plataforma.
+
+**Endpoint:** /api/reservations
+
+**Entidad:** Reservation: almacena la propiedad reservada, el tenant asociado, fechas de check-in y check-out, cantidad de huéspedes, noches totales, precios, estado de la reserva y fechas de creación/actualización.
+
+**Acciones:**
+
+Creación de reservas por parte de tenants sobre propiedades disponibles.
+Validación de disponibilidad de la propiedad en el rango de fechas seleccionado.
+Consulta paginada de reservas propias para tenants.
+Consulta paginada de reservas asociadas a propiedades de un landlord.
+Consulta de detalle de una reserva específica.
+Extensión de reservas activas o reservadas, validando disponibilidad y generando el pago adicional correspondiente.
+Vista previa de cancelación con cálculo de penalización y montos de reembolso.
+Cancelación de reservas aplicando la política de penalización según la cercanía del check-in.
+Finalización de reservas por parte del landlord o administrador.
+Actualización automática de estado de reservas mediante procesos programados.
+Asociación con pagos, contratos, códigos de acceso, mantenimiento y calificaciones.
 
 ---
 
