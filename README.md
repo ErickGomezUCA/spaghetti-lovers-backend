@@ -411,7 +411,38 @@ Gestiona los códigos de acceso generados para que los tenants puedan ingresar a
 
 ### Subida de archivos
 
-<!-- TODO -->
+El proyecto implementa un servicio de almacenamiento en la nube utilizando **Cloudinary** para la gestión de archivos multimedia. Esta integración permite almacenar archivos de forma segura sin depender del almacenamiento local del servidor.
+
+### Características
+
+- Almacenamiento de archivos en la nube mediante Cloudinary.
+- Configuración segura utilizando variables de entorno.
+- Soporte para carga de imágenes y documentos PDF.
+- Validación de formatos permitidos antes de procesar la solicitud.
+- Generación de una URL pública del archivo almacenado para su posterior consulta.
+
+### Formatos soportados
+
+#### Imágenes
+- `.png`
+- `.jpg`
+- `.jpeg`
+- `.webp`
+
+#### Documentos
+- `.pdf`
+
+### Funcionamiento
+1. El cliente envía un archivo mediante una petición `multipart/form-data`.
+2. El backend recibe el archivo.
+3. Se valida que el formato del archivo sea permitido.
+4. El archivo se carga en Cloudinary.
+5. Cloudinary devuelve la información del recurso almacenado, incluyendo su URL pública.
+6. La URL es utilizada por la aplicación para acceder al archivo cuando sea necesario.
+
+### Seguridad
+- Toda la configuración se realiza mediante variables de entorno.
+- Se restringe la carga únicamente a los formatos soportados por la aplicación.
 
 ---
 
